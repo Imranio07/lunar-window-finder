@@ -1,69 +1,566 @@
 {
-  "about": "Landing sites for Lunar Window Finder. lat: degrees north, lon: degrees east. Written during NASA Space Apps Bishkek 2026.",
-  "windows": {
-    "plan": {"start": "2027-01-01", "stop": "2029-01-01", "step": "1 h"},
-    "validation": {"start": "2026-01-01", "stop": "2044-08-01", "step": "6 h"}
+ "about": "Landing sites for Lunar Window Finder. lat: degrees north, lon: degrees east. Written during NASA Space Apps Bishkek 2026.",
+ "windows": {
+  "plan": {
+   "start": "2027-01-01",
+   "stop": "2029-01-01",
+   "step": "1 h"
   },
-  "sites": [
-    {"id": "im2", "name": "IM-2 Athena", "group": "mission", "lat": -84.79, "lon": 29.20, "terrain": true,
-     "windows": ["plan"],
-     "mission": {"landing_utc": "2025-03-06T17:31", "start": "2025-03-01", "stop": "2025-04-05", "step": "10 m"}},
-    {"id": "im1", "name": "IM-1 Odysseus", "group": "mission", "lat": -80.13, "lon": 1.44, "terrain": false,
-     "windows": ["plan"],
-     "mission": {"landing_utc": "2024-02-22T23:23", "start": "2024-02-20", "stop": "2024-03-05", "step": "10 m"}},
-    {"id": "chandrayaan3", "name": "Chandrayaan-3", "group": "mission", "lat": -69.37, "lon": 32.32, "terrain": false,
-     "windows": ["plan"],
-     "mission": {"landing_utc": "2023-08-23T12:33", "start": "2023-08-20", "stop": "2023-09-25", "step": "10 m"}},
-    {"id": "change4", "name": "Chang'e 4", "group": "mission", "lat": -45.44, "lon": 177.60, "terrain": false,
-     "windows": ["plan"],
-     "mission": {"landing_utc": "2019-01-03T02:26", "start": "2019-01-01", "stop": "2019-02-05", "step": "10 m"}},
-    {"id": "change6", "name": "Chang'e 6", "group": "mission", "lat": -41.64, "lon": -153.99, "terrain": false,
-     "windows": ["plan"],
-     "mission": {"landing_utc": "2024-06-01T22:23", "start": "2024-05-30", "stop": "2024-06-10", "step": "10 m"}},
-    {"id": "slim", "name": "SLIM", "group": "mission", "lat": -13.32, "lon": 25.25, "terrain": false,
-     "windows": ["plan"],
-     "mission": {"landing_utc": "2024-01-19T15:20", "start": "2024-01-17", "stop": "2024-03-05", "step": "10 m"}},
-    {"id": "blueghost1", "name": "Blue Ghost Mission 1", "group": "mission", "lat": 18.56, "lon": 61.81, "terrain": false,
-     "windows": ["plan"],
-     "mission": {"landing_utc": "2025-03-02T08:34", "start": "2025-02-28", "stop": "2025-03-20", "step": "10 m"}},
-    {"id": "apollo11", "name": "Apollo 11", "group": "mission", "lat": 0.674, "lon": 23.473, "terrain": false,
-     "windows": ["plan"],
-     "mission": {"landing_utc": "1969-07-20T20:17", "start": "1969-07-18", "stop": "1969-07-24", "step": "10 m"}},
-    {"id": "apollo12", "name": "Apollo 12", "group": "mission", "lat": -3.014, "lon": -23.419, "terrain": false,
-     "windows": ["plan"],
-     "mission": {"landing_utc": "1969-11-19T06:54", "start": "1969-11-17", "stop": "1969-11-23", "step": "10 m"}},
-    {"id": "apollo14", "name": "Apollo 14", "group": "mission", "lat": -3.645, "lon": -17.471, "terrain": false,
-     "windows": ["plan"],
-     "mission": {"landing_utc": "1971-02-05T09:18", "start": "1971-02-03", "stop": "1971-02-09", "step": "10 m"}},
-    {"id": "apollo15", "name": "Apollo 15", "group": "mission", "lat": 26.132, "lon": 3.634, "terrain": false,
-     "windows": ["plan"],
-     "mission": {"landing_utc": "1971-07-30T22:16", "start": "1971-07-28", "stop": "1971-08-04", "step": "10 m"}},
-    {"id": "apollo16", "name": "Apollo 16", "group": "mission", "lat": -8.973, "lon": 15.499, "terrain": false,
-     "windows": ["plan"],
-     "mission": {"landing_utc": "1972-04-21T02:23", "start": "1972-04-19", "stop": "1972-04-26", "step": "10 m"}},
-    {"id": "apollo17", "name": "Apollo 17", "group": "mission", "lat": 20.188, "lon": 30.775, "terrain": false,
-     "windows": ["plan"],
-     "mission": {"landing_utc": "1972-12-11T19:54", "start": "1972-12-09", "stop": "1972-12-16", "step": "10 m"}},
-
-    {"id": "v01", "name": "Check point 1", "group": "validation", "lat": -89.9, "lon": 0.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v02", "name": "Check point 2", "group": "validation", "lat": -89.5, "lon": 60.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v03", "name": "Check point 3", "group": "validation", "lat": -89.0, "lon": 150.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v04", "name": "Check point 4", "group": "validation", "lat": -88.0, "lon": -90.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v05", "name": "Check point 5", "group": "validation", "lat": -86.0, "lon": 10.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v06", "name": "Check point 6", "group": "validation", "lat": -89.7, "lon": 120.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v07", "name": "Check point 7", "group": "validation", "lat": -89.3, "lon": -150.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v08", "name": "Check point 8", "group": "validation", "lat": -89.0, "lon": -60.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v09", "name": "Check point 9", "group": "validation", "lat": -88.5, "lon": 30.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v10", "name": "Check point 10", "group": "validation", "lat": -88.5, "lon": 170.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v11", "name": "Check point 11", "group": "validation", "lat": -88.0, "lon": 90.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v12", "name": "Check point 12", "group": "validation", "lat": -87.5, "lon": -30.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v13", "name": "Check point 13", "group": "validation", "lat": -87.5, "lon": -140.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v14", "name": "Check point 14", "group": "validation", "lat": -87.0, "lon": 60.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v15", "name": "Check point 15", "group": "validation", "lat": -87.0, "lon": 140.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v16", "name": "Check point 16", "group": "validation", "lat": -86.5, "lon": -80.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v17", "name": "Check point 17", "group": "validation", "lat": -86.5, "lon": -170.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v18", "name": "Check point 18", "group": "validation", "lat": -86.0, "lon": 100.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v19", "name": "Check point 19", "group": "validation", "lat": -85.5, "lon": -45.0, "terrain": true, "windows": ["validation"]},
-    {"id": "v20", "name": "Check point 20", "group": "validation", "lat": -85.5, "lon": 45.0, "terrain": true, "windows": ["validation"]}
-  ]
+  "validation": {
+   "start": "2026-01-01",
+   "stop": "2044-08-01",
+   "step": "6 h"
+  }
+ },
+ "sites": [
+  {
+   "id": "a3_peaknearcabeusb",
+   "name": "Peak near Cabeus B",
+   "group": "artemis",
+   "lat": -83.6375,
+   "lon": -68.7495,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
+  },
+  {
+   "id": "a3_haworth",
+   "name": "Haworth",
+   "group": "artemis",
+   "lat": -86.7639,
+   "lon": -22.777,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
+  },
+  {
+   "id": "a3_malapertmassif",
+   "name": "Malapert Massif",
+   "group": "artemis",
+   "lat": -85.9948,
+   "lon": -0.2358,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
+  },
+  {
+   "id": "a3_monsmoutonplateau",
+   "name": "Mons Mouton Plateau",
+   "group": "artemis",
+   "lat": -84.3347,
+   "lon": 30.5923,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
+  },
+  {
+   "id": "a3_monsmouton",
+   "name": "Mons Mouton",
+   "group": "artemis",
+   "lat": -85.4266,
+   "lon": 31.7428,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
+  },
+  {
+   "id": "a3_nobilerim1",
+   "name": "Nobile Rim 1",
+   "group": "artemis",
+   "lat": -85.4364,
+   "lon": 37.347,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
+  },
+  {
+   "id": "a3_nobilerim2",
+   "name": "Nobile Rim 2",
+   "group": "artemis",
+   "lat": -83.9541,
+   "lon": 58.8215,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
+  },
+  {
+   "id": "a3_degerlacherim2",
+   "name": "de Gerlache Rim 2",
+   "group": "artemis",
+   "lat": -88.23,
+   "lon": -64.6284,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
+  },
+  {
+   "id": "a3_slaterplain",
+   "name": "Slater Plain",
+   "group": "artemis",
+   "lat": -87.1637,
+   "lon": 125.5377,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
+  },
+  {
+   "id": "im2",
+   "name": "IM-2 Athena",
+   "group": "mission",
+   "lat": -84.79,
+   "lon": 29.2,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "mission": {
+    "landing_utc": "2025-03-06T17:31",
+    "start": "2025-03-01",
+    "stop": "2025-04-05",
+    "step": "10 m"
+   }
+  },
+  {
+   "id": "im1",
+   "name": "IM-1 Odysseus",
+   "group": "mission",
+   "lat": -80.13,
+   "lon": 1.44,
+   "terrain": false,
+   "windows": [
+    "plan"
+   ],
+   "mission": {
+    "landing_utc": "2024-02-22T23:23",
+    "start": "2024-02-20",
+    "stop": "2024-03-05",
+    "step": "10 m"
+   }
+  },
+  {
+   "id": "chandrayaan3",
+   "name": "Chandrayaan-3",
+   "group": "mission",
+   "lat": -69.37,
+   "lon": 32.32,
+   "terrain": false,
+   "windows": [
+    "plan"
+   ],
+   "mission": {
+    "landing_utc": "2023-08-23T12:33",
+    "start": "2023-08-20",
+    "stop": "2023-09-25",
+    "step": "10 m"
+   }
+  },
+  {
+   "id": "change4",
+   "name": "Chang'e 4",
+   "group": "mission",
+   "lat": -45.44,
+   "lon": 177.6,
+   "terrain": false,
+   "windows": [
+    "plan"
+   ],
+   "mission": {
+    "landing_utc": "2019-01-03T02:26",
+    "start": "2019-01-01",
+    "stop": "2019-02-05",
+    "step": "10 m"
+   }
+  },
+  {
+   "id": "change6",
+   "name": "Chang'e 6",
+   "group": "mission",
+   "lat": -41.64,
+   "lon": -153.99,
+   "terrain": false,
+   "windows": [
+    "plan"
+   ],
+   "mission": {
+    "landing_utc": "2024-06-01T22:23",
+    "start": "2024-05-30",
+    "stop": "2024-06-10",
+    "step": "10 m"
+   }
+  },
+  {
+   "id": "slim",
+   "name": "SLIM",
+   "group": "mission",
+   "lat": -13.32,
+   "lon": 25.25,
+   "terrain": false,
+   "windows": [
+    "plan"
+   ],
+   "mission": {
+    "landing_utc": "2024-01-19T15:20",
+    "start": "2024-01-17",
+    "stop": "2024-03-05",
+    "step": "10 m"
+   }
+  },
+  {
+   "id": "blueghost1",
+   "name": "Blue Ghost Mission 1",
+   "group": "mission",
+   "lat": 18.56,
+   "lon": 61.81,
+   "terrain": false,
+   "windows": [
+    "plan"
+   ],
+   "mission": {
+    "landing_utc": "2025-03-02T08:34",
+    "start": "2025-02-28",
+    "stop": "2025-03-20",
+    "step": "10 m"
+   }
+  },
+  {
+   "id": "apollo11",
+   "name": "Apollo 11",
+   "group": "mission",
+   "lat": 0.674,
+   "lon": 23.473,
+   "terrain": false,
+   "windows": [
+    "plan"
+   ],
+   "mission": {
+    "landing_utc": "1969-07-20T20:17",
+    "start": "1969-07-18",
+    "stop": "1969-07-24",
+    "step": "10 m"
+   }
+  },
+  {
+   "id": "apollo12",
+   "name": "Apollo 12",
+   "group": "mission",
+   "lat": -3.014,
+   "lon": -23.419,
+   "terrain": false,
+   "windows": [
+    "plan"
+   ],
+   "mission": {
+    "landing_utc": "1969-11-19T06:54",
+    "start": "1969-11-17",
+    "stop": "1969-11-23",
+    "step": "10 m"
+   }
+  },
+  {
+   "id": "apollo14",
+   "name": "Apollo 14",
+   "group": "mission",
+   "lat": -3.645,
+   "lon": -17.471,
+   "terrain": false,
+   "windows": [
+    "plan"
+   ],
+   "mission": {
+    "landing_utc": "1971-02-05T09:18",
+    "start": "1971-02-03",
+    "stop": "1971-02-09",
+    "step": "10 m"
+   }
+  },
+  {
+   "id": "apollo15",
+   "name": "Apollo 15",
+   "group": "mission",
+   "lat": 26.132,
+   "lon": 3.634,
+   "terrain": false,
+   "windows": [
+    "plan"
+   ],
+   "mission": {
+    "landing_utc": "1971-07-30T22:16",
+    "start": "1971-07-28",
+    "stop": "1971-08-04",
+    "step": "10 m"
+   }
+  },
+  {
+   "id": "apollo16",
+   "name": "Apollo 16",
+   "group": "mission",
+   "lat": -8.973,
+   "lon": 15.499,
+   "terrain": false,
+   "windows": [
+    "plan"
+   ],
+   "mission": {
+    "landing_utc": "1972-04-21T02:23",
+    "start": "1972-04-19",
+    "stop": "1972-04-26",
+    "step": "10 m"
+   }
+  },
+  {
+   "id": "apollo17",
+   "name": "Apollo 17",
+   "group": "mission",
+   "lat": 20.188,
+   "lon": 30.775,
+   "terrain": false,
+   "windows": [
+    "plan"
+   ],
+   "mission": {
+    "landing_utc": "1972-12-11T19:54",
+    "start": "1972-12-09",
+    "stop": "1972-12-16",
+    "step": "10 m"
+   }
+  },
+  {
+   "id": "v01",
+   "name": "Check point 1",
+   "group": "validation",
+   "lat": -89.9,
+   "lon": 0.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v02",
+   "name": "Check point 2",
+   "group": "validation",
+   "lat": -89.5,
+   "lon": 60.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v03",
+   "name": "Check point 3",
+   "group": "validation",
+   "lat": -89.0,
+   "lon": 150.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v04",
+   "name": "Check point 4",
+   "group": "validation",
+   "lat": -88.0,
+   "lon": -90.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v05",
+   "name": "Check point 5",
+   "group": "validation",
+   "lat": -86.0,
+   "lon": 10.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v06",
+   "name": "Check point 6",
+   "group": "validation",
+   "lat": -89.7,
+   "lon": 120.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v07",
+   "name": "Check point 7",
+   "group": "validation",
+   "lat": -89.3,
+   "lon": -150.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v08",
+   "name": "Check point 8",
+   "group": "validation",
+   "lat": -89.0,
+   "lon": -60.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v09",
+   "name": "Check point 9",
+   "group": "validation",
+   "lat": -88.5,
+   "lon": 30.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v10",
+   "name": "Check point 10",
+   "group": "validation",
+   "lat": -88.5,
+   "lon": 170.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v11",
+   "name": "Check point 11",
+   "group": "validation",
+   "lat": -88.0,
+   "lon": 90.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v12",
+   "name": "Check point 12",
+   "group": "validation",
+   "lat": -87.5,
+   "lon": -30.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v13",
+   "name": "Check point 13",
+   "group": "validation",
+   "lat": -87.5,
+   "lon": -140.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v14",
+   "name": "Check point 14",
+   "group": "validation",
+   "lat": -87.0,
+   "lon": 60.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v15",
+   "name": "Check point 15",
+   "group": "validation",
+   "lat": -87.0,
+   "lon": 140.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v16",
+   "name": "Check point 16",
+   "group": "validation",
+   "lat": -86.5,
+   "lon": -80.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v17",
+   "name": "Check point 17",
+   "group": "validation",
+   "lat": -86.5,
+   "lon": -170.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v18",
+   "name": "Check point 18",
+   "group": "validation",
+   "lat": -86.0,
+   "lon": 100.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v19",
+   "name": "Check point 19",
+   "group": "validation",
+   "lat": -85.5,
+   "lon": -45.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  },
+  {
+   "id": "v20",
+   "name": "Check point 20",
+   "group": "validation",
+   "lat": -85.5,
+   "lon": 45.0,
+   "terrain": true,
+   "windows": [
+    "validation"
+   ]
+  }
+ ]
 }
