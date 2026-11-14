@@ -19,6 +19,9 @@ Run from the project folder:
         # 20 m map for the first 30 km around each site, 80 m map beyond
 
 Results go to data/terrain/<site id>.json
+
+AI use: written during NASA Space Apps 2026 with help from an AI assistant
+(Claude by Anthropic); every step was run and checked by the author.
 """
 
 import argparse

@@ -16,6 +16,9 @@ Run after fetch_horizons.py has the planning window of the region centres:
     python3 pipeline/region_scan.py
 Results: data/regions/<site id>.json, and the best-lit spots are added to
 sites.json (then run fetch_horizons.py, horizon.py, visibility.py again).
+
+AI use: written during NASA Space Apps 2026 with help from an AI assistant
+(Claude by Anthropic); every step was run and checked by the author.
 """
 
 import json

@@ -1,24 +1,29 @@
 # Texts for the NASA Space Apps project page
 
-Copy each block into the matching field on spaceappschallenge.org → your team → Project.
-Team: SpaceTalent · Challenge: Lunar Landing Site Navigator · Project name: **Lunar Window Finder**
+Fields in the same order as on spaceappschallenge.org → profile icon → My Team → Project tab → Edit.
+Copy only the text under each heading. Everything must stay in English.
 
 ---
 
-## 1. High-Level Project Summary
+## Project Name
 
-Lunar Window Finder is a one-screen web tool that tells a mission planner, a teacher or anyone curious whether a lunar lander will have sunlight for its solar panels and a direct line of sight to Earth at a chosen site on chosen dates. At the Moon’s south pole the Sun never rises more than about 1.5° above a flat horizon, so mountains decide everything; we compute the real horizon of each site from NASA LOLA terrain and combine it with Sun and Earth positions from NASA JPL Horizons for every hour of 2027–2028. The tool gives a one-sentence GO / NO-GO verdict against a mission rule (for example “survives at most 50 hours of darkness”), and if the answer is NO-GO it finds the nearest landing date that works, which is exactly the “launch slipped” situation described in the challenge. It covers the nine Artemis III candidate regions, their best-lit spots found by our own scan, and thirteen real missions from Apollo 11 to Blue Ghost. Its numbers match NASA’s published illumination map within 1.6 percentage points on average, and it shows why a move of a few kilometres can change sunlight from 2% to 64% of the time.
+Lunar Window Finder
 
-## 2. Link to Project Demo
+## High-Level Project Summary
 
-(paste the link to the 30-second video here)
+Lunar Window Finder is a one-screen web tool that tells a mission planner, a teacher or anyone curious whether a lunar lander will have sunlight for its solar panels and a direct line of sight to Earth at a chosen site on chosen dates. At the Moon’s south pole the Sun never rises more than about 1.5° above a flat horizon, so mountains decide everything; we compute the real horizon of each site from NASA LOLA terrain and combine it with Sun and Earth positions from NASA JPL Horizons for every hour of 2027–2028. The tool gives a one-sentence GO / NO-GO verdict against a mission rule (for example “survives at most 50 hours of darkness”), and if the answer is NO-GO it finds the nearest landing date that works, which is exactly the “launch slipped” situation described in the challenge. It covers the nine Artemis III candidate regions, their best-lit spots found by our own scan, thirteen real missions from Apollo 11 to Blue Ghost, and any point you click near the pole. Its numbers match NASA’s published illumination map within 1.6 percentage points on average, and it shows why a move of a few kilometres can change sunlight from 2% to 64% of the time.
 
-## 3. Link to Final Project
+## Link to Project Demo
+
+PASTE THE YOUTUBE LINK HERE (30-second video, English subtitles, visible “AI-assisted” mark)
+
+## Link to Final Project
 
 https://github.com/Imranio07/lunar-window-finder
-Live tool: https://imranio07.github.io/lunar-window-finder/
 
-## 4. Detailed Project Description
+## Detailed Project Description
+
+Live tool (no login needed): https://imranio07.github.io/lunar-window-finder/
 
 **What it does**
 
@@ -59,35 +64,42 @@ Live tool: https://imranio07.github.io/lunar-window-finder/
 
 Sunlight in view is not electric power, and Earth in view is not a radio link: panel angle, dust, temperature, antennas and ground stations are not modelled. The 80 m height map smooths ridges closer than about 1 km and ends at 80° S, so for sites north of about 85° S some far terrain is not counted. The click-any-point mode is a quick look on a 240 m map: at 19 sites computed both ways it differs from the full calculation by 2.4 percentage points of sunlight on average, and by up to 15 next to a close ridge. The best-lit spots are our result, not NASA’s selection.
 
-**Tools:** Python (NumPy, Rasterio, Requests), JavaScript, HTML and CSS, Git, GitHub Pages.
+**Benefits and goals:** make site-and-date trade-offs for lunar landings fast, honest and understandable, so a planner can re-check a slipped launch in seconds and a teacher can show why the lunar pole is so hard.
 
-**Goals:** make site-and-date trade-offs for lunar landings fast, honest and understandable for planners, teachers and the public.
+**Tools:** Python (NumPy, Rasterio, Requests), JavaScript, HTML and CSS, Git, GitHub Pages. The page runs in any browser with no install and no server.
 
-## 5. NASA Data
+## Use of Super Intelligence (SI)
+
+Yes. I used an AI assistant (Claude by Anthropic) during the hackathon, after the official start:
+
+- Code: it helped write the Python pipeline and the JavaScript web page. I ran every step on my own computer and checked the results against independent references (NASA illumination and Earth visibility maps, Apollo landing records, the Blue Ghost mission report). The README, the page and each code file state this.
+- Text: it helped write the README, these texts and the slides.
+- Video and slides: the 30-second demo video and the slide deck were assembled with its help from screen captures of the tool; the video carries a visible “AI-assisted: made with Claude (Anthropic)” mark.
+- Method: I discussed options for the method and the features with it; the choice of challenge and the decisions on what to build and how to check it were mine.
+
+No numbers or results were generated by AI: every number comes from NASA and USGS data processed by the open code in the repository. No NASA logos or branding are used.
+
+## NASA Data
 
 - **NASA JPL Horizons** (API): Sun and Earth azimuth and elevation at every site, for every time step. This is the core input of the whole tool.
-- **NASA LOLA (Lunar Orbiter Laser Altimeter) south-pole height map**, 80 m per pixel, from NASA’s Planetary Geodesy Data Archive (PGDA): used to compute the terrain horizon of every polar site and of about 3,500 scan points.
+- **NASA LOLA (Lunar Orbiter Laser Altimeter) south-pole height map**, 80 m per pixel, from NASA’s Planetary Geodesy Data Archive (PGDA): used to compute the terrain horizon of every polar site and of about 3,500 scan points, and (reduced to 240 m) for the click-any-point mode.
 - **NASA PGDA Lunar Polar Illumination maps** (average solar illumination and average Earth visibility, Mazarico et al. 2011): used as the independent reference to check our results.
 - **NASA Artemis III candidate landing regions** (announced October 2024), as outlines published by USGS from LROC QuickMap: the nine regions shown in the tool.
 - **Apollo Lunar Surface Journal (NASA History)**: Sun and Earth angles at the Apollo landings, used as a second check.
 
-## 6. Space Agency Partner & Other Data
+## Space Agency Partner Data and Other References
 
-- **USGS Astrogeology**: Down-selected Artemis III candidate landing site navigational grids (DOI 10.5066/P1MEQ6UK), region outlines.
-- Public landing coordinates and times of ISRO Chandrayaan-3, JAXA SLIM, CNSA Chang’e 4 and Chang’e 6, Intuitive Machines IM-1 and IM-2, and Firefly Blue Ghost Mission 1.
+Other data:
+- USGS Astrogeology, Down-selected Artemis III candidate landing site navigational grids, DOI 10.5066/P1MEQ6UK: https://www.sciencebase.gov/catalog/item/671a6fa8d34efed5620f89f8
+- Public landing coordinates and times of ISRO Chandrayaan-3, JAXA SLIM, CNSA Chang’e 4 and Chang’e 6, Intuitive Machines IM-1 and IM-2, and Firefly Blue Ghost Mission 1 (ISRO and JAXA are 2026 Space Apps Space Agency Partners).
 
-## 7. Use of Artificial Intelligence
-
-We used an AI assistant (Claude by Anthropic) during the hackathon to help write the Python and JavaScript code, the README and these texts, and to discuss the method. All work was done after the official start. The author ran every step on his own computer, compared the results with independent NASA references (illumination maps, Apollo records, a real eclipse) and can explain each part of the method. No data, images or results were generated by AI: every number comes from NASA and USGS data processed by the open code in the repository. No NASA logos or branding are used.
-
-## 8. References
-
+References:
 - NASA JPL Horizons System and API: https://ssd.jpl.nasa.gov/horizons/ and https://ssd-api.jpl.nasa.gov/doc/horizons.html
 - NASA PGDA, High-resolution LOLA topography of the lunar south pole: https://pgda.gsfc.nasa.gov/products/90
 - NASA PGDA, Lunar Polar Illumination: https://pgda.gsfc.nasa.gov/products/69
 - Mazarico, E., Neumann, G. A., Smith, D. E., Zuber, M. T., Torrence, M. H. (2011). Illumination conditions of the lunar polar regions using LOLA topography. Icarus 211, 1066–1081.
 - NASA, “NASA Provides Update on Artemis III Moon Landing Regions” (October 2024): https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/
-- USGS, Down-selected Artemis III candidate landing site navigational grids, DOI 10.5066/P1MEQ6UK: https://www.sciencebase.gov/catalog/item/671a6fa8d34efed5620f89f8
 - Apollo Lunar Surface Journal, Sun and Earth altitude and azimuth at the landing sites: https://www.nasa.gov/history/alsj/alsj-EarthSun_AltAz.html
 - Firefly Aerospace, “Firefly Aerospace Successfully Completes 14 Days of Surface Operations on the Moon” (March 2025): https://fireflyspace.com/news/firefly-aerospace-successfully-completes-14-days-of-surface-operations-on-the-moon
-- Tools: Python, NumPy, Rasterio (GDAL), Requests, Git, GitHub Pages.
+
+Tools and open-source software: Python, NumPy, Rasterio (GDAL), Requests, Git, GitHub Pages; Inter font (SIL Open Font License) in the video; AI assistant Claude by Anthropic (see the SI section).

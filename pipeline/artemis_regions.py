@@ -10,6 +10,9 @@ pipeline steps pick them up.
 
 Put the zip (or its unpacked files) under data/artemis/ and run:
     python3 pipeline/artemis_regions.py
+
+AI use: written during NASA Space Apps 2026 with help from an AI assistant
+(Claude by Anthropic); every step was run and checked by the author.
 """
 
 import json

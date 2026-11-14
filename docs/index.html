@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<meta name="generator" content="Hand-written HTML and JavaScript, created during NASA Space Apps 2026 with help from an AI assistant (Claude by Anthropic) and checked by the author">
 <title>Lunar Window Finder</title>
 <meta name="description" content="Sunlight and line of sight to Earth for lunar landing sites, from NASA LOLA terrain and JPL Horizons, checked against NASA illumination maps.">
 <style>
@@ -74,6 +75,7 @@
   .warn { background: #fff7e6; border: 1px solid #f3d9a4; border-radius: 8px; padding: 8px 10px; font-size: 13px; color: #6b4d12; margin-top: 10px; }
   .scroll { overflow-x: auto; }
   footer { color: var(--muted); font-size: 13px; padding: 10px 0 30px; }
+  footer a { color: var(--sun); }
   @media (max-width: 1000px) {
     .controls { grid-template-columns: 1fr 1fr; } .rule-row { grid-template-columns: 1fr 1fr; }
     .tiles { grid-template-columns: repeat(3, 1fr); } .two, .region { grid-template-columns: 1fr; }
@@ -834,7 +836,7 @@ function methodsText() {
   <p><b>Edge of the map:</b> the height map ends at 80° S. For sites north of about 85° S a part of the 150 km search radius lies beyond that edge, and terrain there is not counted (for Peak near Cabeus B about a fifth of the rays).</p>
   <p><b>What the numbers are not:</b> sunlight in view is not electric power (panel angle, dust and temperature are left out), and Earth in view is not a radio link (antennas and ground stations are left out). Eclipses are included: seen from the Moon, a lunar eclipse is Earth passing in front of the Sun, and we compute how much of the Sun’s disk Earth covers (Earth’s glowing atmosphere is left out).</p>
   <p><b>AI use:</b> code was written during the hackathon with help from an AI assistant (Claude by Anthropic); every step was run, checked against NASA references and explained by the author.</p>`;
-  $("footer").innerHTML = `Data: NASA JPL Horizons · NASA LOLA / PGDA height maps · NASA PGDA average illumination map (Mazarico et al. 2011) · USGS Artemis III navigation grids · Apollo Lunar Surface Journal. Built for NASA Space Apps Challenge 2026, Bishkek. Data generated ${S.index.generated_utc} UTC.`;
+  $("footer").innerHTML = `Data: NASA JPL Horizons · NASA LOLA / PGDA height maps · NASA PGDA average illumination map (Mazarico et al. 2011) · USGS Artemis III navigation grids · Apollo Lunar Surface Journal. Built for NASA Space Apps Challenge 2026, Bishkek, by team SpaceTalent, with help from an AI assistant (Claude by Anthropic). <a href="https://github.com/Imranio07/lunar-window-finder">Code and README on GitHub</a>. Data generated ${S.index.generated_utc} UTC.`;
 }
 
 // ---------- url state ----------

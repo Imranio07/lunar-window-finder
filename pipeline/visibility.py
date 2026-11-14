@@ -26,6 +26,9 @@ Three checks against independent references:
 Run from the project folder:
     python3 pipeline/visibility.py
 Results: data/results/<site id>.json and data/results/validation.json
+
+AI use: written during NASA Space Apps 2026 with help from an AI assistant
+(Claude by Anthropic); every step was run and checked by the author.
 """
 
 import csv
