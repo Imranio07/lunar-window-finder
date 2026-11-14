@@ -16,11 +16,12 @@ Scores (each for a 2 m and a 10 m mast, and as a range for a horizon
 Sunlight in view is not the same as power, and Earth in view is not the
 same as a radio link: these are geometric scores.
 
-Two checks against independent references:
-  1. NASA PGDA average illumination map (Mazarico et al. 2011, 18.6 years)
-     at the check points near the south pole.
+Three checks against independent references:
+  1. NASA PGDA average solar illumination map (Mazarico et al. 2011, 18.6 years)
+     at the check points near the south pole, compared at the surface (0 m).
   2. Sun and Earth position at the six Apollo landings, as listed by the
      Apollo Lunar Surface Journal.
+  3. NASA PGDA average Earth visibility map, same check points (if the file is there).
 
 Run from the project folder:
     python3 pipeline/visibility.py
@@ -50,6 +51,7 @@ HORIZONS_DIR = ROOT / "data" / "horizons"
 TERRAIN_DIR = ROOT / "data" / "terrain"
 RESULTS_DIR = ROOT / "data" / "results"
 NASA_SUN_MAP = ROOT / "data" / "nasa" / "AVGVISIB_85S_060M_201608.TIF"
+NASA_EARTH_MAP = ROOT / "data" / "nasa" / "AVGVISIB_85S_060M_201608_EARTH.TIF"
 
 # Sun and Earth seen from the Apollo landing sites at touchdown, from the Apollo Lunar
 # Surface Journal (computed by P. Fjeld and J. Scotti, spot-checked against JPL Horizons):
@@ -79,6 +81,14 @@ def load_track(site_id, window, body):
     az = np.array([float(a) for _, a, _ in rows])
     el = np.array([float(e) for _, _, e in rows])
     return minutes, az, el
+
+
+def masts_of(site_id):
+    """Heights available for a site: 0 m (surface) is only computed where there is terrain."""
+    path = TERRAIN_DIR / f"{site_id}.json"
+    if path.exists():
+        return list(json.loads(path.read_text(encoding="utf-8"))["masts"])
+    return list(MASTS)
 
 
 def load_horizon(site_id, mast):
@@ -136,7 +146,7 @@ def angle_gap(a, b):
 
 # ---------------- NASA map ----------------
 def nasa_share(path, lat, lon):
-    """Average share of the Sun in view from the NASA PGDA map (0..1), or None."""
+    """Value of a NASA PGDA average-visibility map at a point (0..1), or None."""
     with rasterio.open(path) as src:
         xs, ys = transform(MOON_LONLAT, src.crs, [lon], [lat])
         row, col = src.index(xs[0], ys[0])
@@ -155,8 +165,9 @@ def nasa_share(path, lat, lon):
 def site_results(site, windows_config):
     record = {"id": site["id"], "name": site["name"], "group": site["group"],
               "lat": site["lat"], "lon": site["lon"], "windows": {}}
-    horizons = {mast: load_horizon(site["id"], mast) for mast in MASTS}
-    record["horizon_source"] = horizons[MASTS[0]][2]
+    masts = masts_of(site["id"])
+    horizons = {mast: load_horizon(site["id"], mast) for mast in masts}
+    record["horizon_source"] = horizons["2"][2]
 
     window_names = list(site.get("windows", [])) + (["mission"] if "mission" in site else [])
     for window in window_names:
@@ -170,7 +181,7 @@ def site_results(site, windows_config):
         entry = {"start": str(np.datetime64(int(minutes[0]), "m")),
                  "stop": str(np.datetime64(int(minutes[-1]), "m")),
                  "step_h": step_hours, "masts": {}}
-        for mast in MASTS:
+        for mast in masts:
             az_grid, horizon, _ = horizons[mast]
             variants = []
             for shift in (0.0, -SHIFT, SHIFT):
@@ -229,49 +240,68 @@ def main():
         print(f"  {record['name']:<22}{record['horizon_source']:<26}{cell('sun_pct', '.1f'):>16}"
               f"{cell('longest_dark_h', '.0f'):>18}{cell('earth_pct', '.1f'):>16}{cell('longest_blackout_h', '.0f'):>20}")
 
-    # ---- check 1: NASA average illumination map ----
-    validation = {"nasa_sun": {"source": "NASA PGDA average illumination 85-90S, 60 m (Mazarico et al. 2011), "
-                                         + NASA_SUN_MAP.name, "points": []}, "apollo": []}
-    print(f"\nCheck 1: our Solar Availability over 18.6 years vs NASA map {NASA_SUN_MAP.name}")
-    print(f"  {'point':<18}{'ours 2 m':>10}{'range':>14}{'ours 10 m':>11}{'NASA':>8}{'diff':>8}")
-    diffs, ours_all, nasa_all = [], [], []
-    for record in results.values():
-        val = record["windows"].get("validation")
-        if not val:
+    # ---- checks 1 and 3: NASA average visibility maps ----
+    # The NASA maps are computed for the surface, so we compare our 0 m horizon with them.
+    validation = {"apollo": []}
+    checks = [
+        ("nasa_sun", NASA_SUN_MAP, "sun_pct", "Check 1: our Solar Availability over 18.6 years vs NASA map",
+         "NASA PGDA average solar illumination, 85-90S, 60 m (Mazarico et al. 2011)"),
+        ("nasa_earth", NASA_EARTH_MAP, "earth_any_pct", "Check 3: share of time with any part of Earth in view vs NASA map",
+         "NASA PGDA average Earth visibility, 85-90S, 60 m (Mazarico et al. 2011)"),
+    ]
+    for name, map_file, key, title, source in checks:
+        if not map_file.exists():
+            print(f"\n{title}: {map_file.name} is not in data/nasa/, skipped")
             continue
-        nasa = nasa_share(NASA_SUN_MAP, record["lat"], record["lon"]) if NASA_SUN_MAP.exists() else None
-        ours = val["masts"]["2"]["sun_pct"]
-        ours10 = val["masts"]["10"]["sun_pct"]["value"]
-        point = {"id": record["id"], "lat": record["lat"], "lon": record["lon"],
-                 "ours_2m": ours["value"], "low": ours["low"], "high": ours["high"], "ours_10m": ours10,
-                 "nasa": None if nasa is None else round(100 * nasa, 2)}
-        line = (f"  {record['lat']:>6.1f}, {record['lon']:>6.1f}  {ours['value']:>9.1f}%"
-                f"{ours['low']:>7.1f}-{ours['high']:<5.1f}{ours10:>10.1f}%")
-        if nasa is None:
-            line += "       ?"
-        else:
-            diff = ours["value"] - 100 * nasa
-            point["diff"] = round(diff, 2)
-            diffs.append(diff)
-            ours_all.append(ours["value"])
-            nasa_all.append(100 * nasa)
-            line += f"{100 * nasa:>7.1f}%{diff:>+8.1f}"
-        validation["nasa_sun"]["points"].append(point)
-        print(line)
-    if diffs:
-        d = np.array(diffs)
-        stats = {"n": int(d.size), "mean_diff": round(float(d.mean()), 2),
-                 "mean_abs_diff": round(float(np.abs(d).mean()), 2),
-                 "max_abs_diff": round(float(np.abs(d).max()), 2),
-                 "rms_diff": round(float(np.sqrt((d ** 2).mean())), 2),
-                 "within_3pp": int((np.abs(d) <= 3).sum()),
-                 "correlation": round(float(np.corrcoef(ours_all, nasa_all)[0, 1]), 3) if d.size > 2 else None}
-        validation["nasa_sun"]["stats"] = stats
-        print(f"  {stats['n']} points: mean diff {stats['mean_diff']:+.1f} pp, mean |diff| {stats['mean_abs_diff']:.1f} pp, "
-              f"max |diff| {stats['max_abs_diff']:.1f} pp, RMS {stats['rms_diff']:.1f} pp, "
-              f"{stats['within_3pp']}/{stats['n']} within 3 pp, correlation {stats['correlation']}")
-    else:
-        print("  no check points yet (Horizons validation files still missing?)")
+        try:
+            with rasterio.open(map_file):
+                pass
+        except Exception as error:
+            print(f"\n{title}: cannot read {map_file.name} ({error}), skipped")
+            continue
+        print(f"\n{title} {map_file.name}")
+        print(f"  {'point':<18}{'ours 0 m':>10}{'range':>14}{'ours 2 m':>10}{'ours 10 m':>11}{'NASA':>8}{'diff':>8}")
+        points, pairs = [], {"0": [], "2": []}
+        for record in results.values():
+            val = record["windows"].get("validation")
+            if not val:
+                continue
+            reference = "0" if "0" in val["masts"] else "2"
+            ours = val["masts"][reference][key]
+            ours2 = val["masts"]["2"][key]["value"]
+            ours10 = val["masts"]["10"][key]["value"]
+            nasa = nasa_share(map_file, record["lat"], record["lon"])
+            point = {"id": record["id"], "lat": record["lat"], "lon": record["lon"], "height_m": float(reference),
+                     "ours": ours["value"], "low": ours["low"], "high": ours["high"],
+                     "ours_2m": ours2, "ours_10m": ours10, "nasa": None if nasa is None else round(100 * nasa, 2)}
+            line = (f"  {record['lat']:>6.1f}, {record['lon']:>6.1f}  {ours['value']:>9.1f}%"
+                    f"{ours['low']:>7.1f}-{ours['high']:<5.1f}{ours2:>9.1f}%{ours10:>10.1f}%")
+            if nasa is None:
+                line += "       ?"
+            else:
+                point["diff"] = round(ours["value"] - 100 * nasa, 2)
+                pairs["0"].append((ours["value"], 100 * nasa))
+                pairs["2"].append((ours2, 100 * nasa))
+                line += f"{100 * nasa:>7.1f}%{point['diff']:>+8.1f}"
+            points.append(point)
+            print(line)
+        validation[name] = {"source": f"{source}, {map_file.name}", "points": points}
+        for height, label in (("0", "stats"), ("2", "stats_2m")):
+            if len(pairs[height]) < 3:
+                continue
+            mine, theirs = np.array(pairs[height]).T
+            d = mine - theirs
+            stats = {"n": int(d.size), "mean_diff": round(float(d.mean()), 2),
+                     "mean_abs_diff": round(float(np.abs(d).mean()), 2),
+                     "max_abs_diff": round(float(np.abs(d).max()), 2),
+                     "rms_diff": round(float(np.sqrt((d ** 2).mean())), 2),
+                     "within_3pp": int((np.abs(d) <= 3).sum()),
+                     "correlation": round(float(np.corrcoef(mine, theirs)[0, 1]), 3)}
+            validation[name][label] = stats
+            print(f"  at {height} m, {stats['n']} points: mean diff {stats['mean_diff']:+.1f} pp, "
+                  f"mean |diff| {stats['mean_abs_diff']:.1f} pp, max |diff| {stats['max_abs_diff']:.1f} pp, "
+                  f"RMS {stats['rms_diff']:.1f} pp, {stats['within_3pp']}/{stats['n']} within 3 pp, "
+                  f"correlation {stats['correlation']}")
 
     # ---- check 2: Apollo landings ----
     print("\nCheck 2: Sun and Earth at the Apollo landings, ours vs Apollo Lunar Surface Journal")

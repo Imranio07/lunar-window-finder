@@ -2,10 +2,10 @@
 """
 Lunar Window Finder - pipeline step 4: pack the data for the website.
 
-  web/data/index.json      every site: terrain horizon, scores, real-mission facts,
+  docs/data/index.json     every site: terrain horizon, scores, real-mission facts,
                            hourly share of Sun and Earth in view (feeds the calendar),
                            and the results of the checks
-  web/data/sky/<id>.json   hourly Sun and Earth positions for one site
+  docs/data/sky/<id>.json  hourly Sun and Earth positions for one site
                            (the page loads it when the site is picked)
 
 Numbers are packed as base64 byte arrays to keep the files small.
@@ -25,7 +25,8 @@ from visibility import (EARTH_RADIUS, MASTS, RESULTS_DIR, SITES_FILE, SUN_RADIUS
                         load_horizon, load_track, visible_share)
 
 ROOT = Path(__file__).resolve().parents[1]
-WEB_DATA = ROOT / "web" / "data"
+WEB_DATA = ROOT / "docs" / "data"          # GitHub Pages serves the docs/ folder
+REGIONS_DIR = ROOT / "data" / "regions"
 
 
 def pack(values, dtype):
@@ -82,6 +83,8 @@ def main():
         sky = {}
         entry = {key: site[key] for key in ("id", "name", "group", "lat", "lon")}
         entry["source"] = site.get("source", "")
+        entry["region"] = site.get("region")
+        entry["spot"] = site.get("spot")
         entry["horizon_source"] = results.get("horizon_source")
         terrain_file = TERRAIN_DIR / f"{site['id']}.json"
         if terrain_file.exists():
@@ -127,6 +130,11 @@ def main():
             continue
         (WEB_DATA / "sky" / f"{site['id']}.json").write_text(json.dumps(sky), encoding="utf-8")
         index["sites"].append(entry)
+
+    index["regions"] = {}
+    for region_file in sorted(REGIONS_DIR.glob("a3_*.json")):
+        region = json.loads(region_file.read_text(encoding="utf-8"))
+        index["regions"][region["region"]] = region
 
     validation_file = RESULTS_DIR / "validation.json"
     if validation_file.exists():

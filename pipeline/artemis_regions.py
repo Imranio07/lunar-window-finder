@@ -23,6 +23,7 @@ MOON_RADIUS = 1_737_400.0
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIR = ROOT / "data" / "artemis"
 SITES_FILE = ROOT / "pipeline" / "sites.json"
+OUTLINES_FILE = ROOT / "data" / "regions" / "outlines.json"
 
 REGIONS = {                     # simplified name -> display name (NASA, 28 Oct 2024)
     "peaknearcabeusb": "Peak near Cabeus B",
@@ -135,7 +136,7 @@ def main():
             with zipfile.ZipFile(archive) as z:
                 z.extractall(target)
 
-    found = {}
+    found, outlines = {}, {}
     for shp in SOURCE_DIR.rglob("*.shp"):
         polygons = read_polygons(shp)
         table = read_table(shp.with_suffix(".dbf"))
@@ -150,6 +151,7 @@ def main():
             result = centre(polygon)
             if result and (key not in found or result[2] > found[key][2]):
                 found[key] = result
+                outlines[key] = polygon
 
     if not found:
         raise SystemExit(f"No Artemis region outlines found under {SOURCE_DIR}")
@@ -162,14 +164,21 @@ def main():
         else:
             print(f"  {name:<22} not found")
 
+    OUTLINES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    OUTLINES_FILE.write_text(json.dumps({
+        key: {"name": REGIONS[key], "site_id": "a3_" + key, "lat": round(found[key][0], 4), "lon": round(found[key][1], 4),
+              "area_km2": round(found[key][2]), "rings": [[[round(lon, 5), round(lat, 5)] for lon, lat in ring] for ring in outlines[key]]}
+        for key in found}), encoding="utf-8")
+
     config = json.loads(SITES_FILE.read_text(encoding="utf-8"))
+    best_spots = [s for s in config["sites"] if s.get("spot") == "best"]          # keep results of region_scan.py
     config["sites"] = [s for s in config["sites"] if s.get("group") != "artemis"]
-    new_sites = [{"id": "a3_" + key, "name": name, "group": "artemis",
+    new_sites = [{"id": "a3_" + key, "name": name + ", region centre", "group": "artemis", "region": key, "spot": "centre",
                   "lat": round(found[key][0], 4), "lon": round(found[key][1], 4), "terrain": True,
                   "windows": ["plan"],
                   "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"}
                  for key, name in REGIONS.items() if key in found]
-    config["sites"] = new_sites + config["sites"]
+    config["sites"] = new_sites + best_spots + config["sites"]
     SITES_FILE.write_text(json.dumps(config, indent=1), encoding="utf-8")
     print(f"\nAdded {len(new_sites)} Artemis regions to {SITES_FILE.name}")
 

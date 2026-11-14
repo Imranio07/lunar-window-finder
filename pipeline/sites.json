@@ -15,8 +15,10 @@
  "sites": [
   {
    "id": "a3_peaknearcabeusb",
-   "name": "Peak near Cabeus B",
+   "name": "Peak near Cabeus B, region centre",
    "group": "artemis",
+   "region": "peaknearcabeusb",
+   "spot": "centre",
    "lat": -83.6375,
    "lon": -68.7495,
    "terrain": true,
@@ -26,9 +28,25 @@
    "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
   },
   {
-   "id": "a3_haworth",
-   "name": "Haworth",
+   "id": "a3_peaknearcabeusb_best",
+   "name": "Peak near Cabeus B, best-lit spot",
    "group": "artemis",
+   "region": "peaknearcabeusb",
+   "spot": "best",
+   "lat": -83.5736,
+   "lon": -68.4976,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "best-lit point of our 1 km scan of the USGS region outline"
+  },
+  {
+   "id": "a3_haworth",
+   "name": "Haworth, region centre",
+   "group": "artemis",
+   "region": "haworth",
+   "spot": "centre",
    "lat": -86.7639,
    "lon": -22.777,
    "terrain": true,
@@ -38,9 +56,25 @@
    "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
   },
   {
-   "id": "a3_malapertmassif",
-   "name": "Malapert Massif",
+   "id": "a3_haworth_best",
+   "name": "Haworth, best-lit spot",
    "group": "artemis",
+   "region": "haworth",
+   "spot": "best",
+   "lat": -86.2235,
+   "lon": -23.7568,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "best-lit point of our 1.5 km scan of the USGS region outline"
+  },
+  {
+   "id": "a3_malapertmassif",
+   "name": "Malapert Massif, region centre",
+   "group": "artemis",
+   "region": "malapertmassif",
+   "spot": "centre",
    "lat": -85.9948,
    "lon": -0.2358,
    "terrain": true,
@@ -50,9 +84,25 @@
    "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
   },
   {
-   "id": "a3_monsmoutonplateau",
-   "name": "Mons Mouton Plateau",
+   "id": "a3_malapertmassif_best",
+   "name": "Malapert Massif, best-lit spot",
    "group": "artemis",
+   "region": "malapertmassif",
+   "spot": "best",
+   "lat": -85.9921,
+   "lon": 2.1211,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "best-lit point of our 1 km scan of the USGS region outline"
+  },
+  {
+   "id": "a3_monsmoutonplateau",
+   "name": "Mons Mouton Plateau, region centre",
+   "group": "artemis",
+   "region": "monsmoutonplateau",
+   "spot": "centre",
    "lat": -84.3347,
    "lon": 30.5923,
    "terrain": true,
@@ -62,9 +112,25 @@
    "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
   },
   {
-   "id": "a3_monsmouton",
-   "name": "Mons Mouton",
+   "id": "a3_monsmoutonplateau_best",
+   "name": "Mons Mouton Plateau, best-lit spot",
    "group": "artemis",
+   "region": "monsmoutonplateau",
+   "spot": "best",
+   "lat": -84.4862,
+   "lon": 42.2144,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "best-lit point of our 3.25 km scan of the USGS region outline"
+  },
+  {
+   "id": "a3_monsmouton",
+   "name": "Mons Mouton, region centre",
+   "group": "artemis",
+   "region": "monsmouton",
+   "spot": "centre",
    "lat": -85.4266,
    "lon": 31.7428,
    "terrain": true,
@@ -74,9 +140,25 @@
    "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
   },
   {
-   "id": "a3_nobilerim1",
-   "name": "Nobile Rim 1",
+   "id": "a3_monsmouton_best",
+   "name": "Mons Mouton, best-lit spot",
    "group": "artemis",
+   "region": "monsmouton",
+   "spot": "best",
+   "lat": -85.4763,
+   "lon": 29.4601,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "best-lit point of our 1 km scan of the USGS region outline"
+  },
+  {
+   "id": "a3_nobilerim1",
+   "name": "Nobile Rim 1, region centre",
+   "group": "artemis",
+   "region": "nobilerim1",
+   "spot": "centre",
    "lat": -85.4364,
    "lon": 37.347,
    "terrain": true,
@@ -86,9 +168,25 @@
    "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
   },
   {
-   "id": "a3_nobilerim2",
-   "name": "Nobile Rim 2",
+   "id": "a3_nobilerim1_best",
+   "name": "Nobile Rim 1, best-lit spot",
    "group": "artemis",
+   "region": "nobilerim1",
+   "spot": "best",
+   "lat": -85.0439,
+   "lon": 37.957,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "best-lit point of our 1 km scan of the USGS region outline"
+  },
+  {
+   "id": "a3_nobilerim2",
+   "name": "Nobile Rim 2, region centre",
+   "group": "artemis",
+   "region": "nobilerim2",
+   "spot": "centre",
    "lat": -83.9541,
    "lon": 58.8215,
    "terrain": true,
@@ -98,9 +196,25 @@
    "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
   },
   {
-   "id": "a3_degerlacherim2",
-   "name": "de Gerlache Rim 2",
+   "id": "a3_nobilerim2_best",
+   "name": "Nobile Rim 2, best-lit spot",
    "group": "artemis",
+   "region": "nobilerim2",
+   "spot": "best",
+   "lat": -84.0387,
+   "lon": 59.253,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "best-lit point of our 1 km scan of the USGS region outline"
+  },
+  {
+   "id": "a3_degerlacherim2",
+   "name": "de Gerlache Rim 2, region centre",
+   "group": "artemis",
+   "region": "degerlacherim2",
+   "spot": "centre",
    "lat": -88.23,
    "lon": -64.6284,
    "terrain": true,
@@ -110,9 +224,25 @@
    "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
   },
   {
-   "id": "a3_slaterplain",
-   "name": "Slater Plain",
+   "id": "a3_degerlacherim2_best",
+   "name": "de Gerlache Rim 2, best-lit spot",
    "group": "artemis",
+   "region": "degerlacherim2",
+   "spot": "best",
+   "lat": -88.4691,
+   "lon": -67.8549,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "best-lit point of our 1 km scan of the USGS region outline"
+  },
+  {
+   "id": "a3_slaterplain",
+   "name": "Slater Plain, region centre",
+   "group": "artemis",
+   "region": "slaterplain",
+   "spot": "centre",
    "lat": -87.1637,
    "lon": 125.5377,
    "terrain": true,
@@ -120,6 +250,20 @@
     "plan"
    ],
    "source": "centre of the USGS Artemis III region outline (DOI 10.5066/P1MEQ6UK)"
+  },
+  {
+   "id": "a3_slaterplain_best",
+   "name": "Slater Plain, best-lit spot",
+   "group": "artemis",
+   "region": "slaterplain",
+   "spot": "best",
+   "lat": -87.273,
+   "lon": 127.6295,
+   "terrain": true,
+   "windows": [
+    "plan"
+   ],
+   "source": "best-lit point of our 1 km scan of the USGS region outline"
   },
   {
    "id": "im2",

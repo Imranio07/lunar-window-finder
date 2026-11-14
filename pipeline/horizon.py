@@ -37,7 +37,7 @@ MOON_LONLAT = "+proj=longlat +R=1737400 +no_defs"
 AZ_STEP = 0.5                                    # deg between rays
 MAX_DIST = 150_000.0                             # m, how far each ray looks
 FINE_DIST = 30_000.0                             # m, where the 20 m map hands over to the 80 m map
-MASTS = (2.0, 10.0)                              # m above the ground
+MASTS = (0.0, 2.0, 10.0)                         # m above the ground (0 = surface, used for the NASA check)
 
 ROOT = Path(__file__).resolve().parents[1]
 SITES_FILE = ROOT / "pipeline" / "sites.json"
@@ -96,12 +96,12 @@ def local_directions(crs, lat, lon, x, y):
     return north / np.linalg.norm(north), east / np.linalg.norm(east)
 
 
-def horizon_profile(layers, x, y, ground, north, east):
+def horizon_profile(layers, x, y, ground, north, east, az_step=AZ_STEP):
     """Highest terrain angle in every direction.
     layers: list of (HeightMap, reach in m), finest first.
     Returns azimuths, {mast: (horizon angles in deg, distance to the blocking point in m)},
     and the share of rays that stayed on the map all the way out."""
-    azimuth = np.arange(0.0, 360.0, AZ_STEP)
+    azimuth = np.arange(0.0, 360.0, az_step)
     a = np.radians(azimuth)                                   # clockwise from north, like Horizons
     dir_x = np.sin(a) * east[0] + np.cos(a) * north[0]
     dir_y = np.sin(a) * east[1] + np.cos(a) * north[1]
@@ -179,15 +179,17 @@ def main():
             "rays_on_map": round(coverage, 3),
             "masts": {},
         }
-        line = f"[{number}/{len(sites)}] {site['name']:<16} ground {ground:7.0f} m"
+        line = f"[{number}/{len(sites)}] {site['name']:<26} ground {ground:6.0f} m"
         for mast, (angles, blocker) in by_mast.items():
             record["masts"][f"{mast:g}"] = {
                 "horizon_deg": rounded(angles, 3),
                 "blocker_km": rounded(blocker / 1000, 2),
             }
+            if mast == 0:
+                continue                                      # keep the printed line short
             top = int(np.argmax(angles))
-            line += (f" | {mast:g} m mast: {np.min(angles):6.2f}..{np.max(angles):6.2f} deg"
-                     f" (highest at az {azimuth[top]:5.1f}, {blocker[top] / 1000:5.1f} km)")
+            line += (f" | {mast:g} m: {np.min(angles):6.2f}..{np.max(angles):6.2f} deg"
+                     f" (top at az {azimuth[top]:5.1f}, {blocker[top] / 1000:5.1f} km)")
         if coverage < 0.99:
             line += f" | {100 * (1 - coverage):.0f}% of rays leave the map"
         print(line)
