@@ -37,9 +37,11 @@ At the lunar south pole the Sun never rises more than about 1.5° above the flat
 
 ## How we know it is right
 
-1. **Against NASA’s illumination map.** NASA PGDA average solar illumination of the south pole (Mazarico et al. 2011, averaged over 18.6 years). We compute the same 18.6 years at 20 check points between 85.5° S and the pole, at the surface like NASA: **mean absolute difference 1.57 percentage points.** The same check is done for Earth visibility.
-2. **Against the Apollo landings.** Sun and Earth altitude and azimuth at the six Apollo touchdowns, compared with the Apollo Lunar Surface Journal: **Sun within 0.05°, Earth within 0.35°** (the Journal itself quotes agreement with Horizons within 0.5°).
-3. **Sanity checks of the horizon code:** flat ground gives the expected −0.087° horizon for a 2 m panel; mountains placed north or east appear at azimuth 0° or 90°.
+1. **Against NASA’s illumination map.** NASA PGDA average solar illumination of the south pole (Mazarico et al. 2011, averaged over 18.6 years). We compute the same 18.6 years at 20 check points between 85.5° S and the pole, at the surface like NASA: **mean absolute difference 1.6 percentage points, largest 3.3, 19 of 20 points within 3, correlation 0.995.**
+2. **Against NASA’s Earth visibility map** (same product, share of time with any part of Earth in view): **mean absolute difference 0.6 percentage points, correlation 0.997.** Seventeen of the twenty points agree to 0.1.
+3. **Against the Apollo landings.** Sun and Earth altitude and azimuth at the six Apollo touchdowns, compared with the Apollo Lunar Surface Journal: **Sun within 0.05°, Earth within 0.35°** (the Journal itself quotes agreement with Horizons within 0.5°).
+4. **Against a real eclipse.** Without being told, the tool finds the total lunar eclipse of 14 March 2025 at the Blue Ghost landing site: Earth starts to cover the Sun at 05:00 UTC, hides it completely, and uncovers it by 09:50 UTC. Blue Ghost photographed this eclipse from the surface.
+5. **Sanity checks of the horizon code:** flat ground gives the expected −0.087° horizon for a 2 m panel; mountains placed north or east appear at azimuth 0° or 90°.
 
 ## How it works
 
