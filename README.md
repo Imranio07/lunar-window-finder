@@ -18,6 +18,7 @@ At the lunar south pole the Sun never rises more than about 1.5° above the flat
 - **Sky with the real horizon:** terrain silhouette from NASA LOLA with the paths of the Sun and Earth. **Timeline** of both above the local horizon, with **eclipses** (Earth passing in front of the Sun).
 - **Sunlight map of every Artemis III candidate region:** about 400 points per region, showing how a shift of a few kilometres changes everything, and the **best-lit spot**.
 - **Feasibility calendar:** every site × every landing day of 2027–2028, coloured by the chosen rule.
+- **Compare all sites** for the chosen landing date in one ranked table, GO / NO-GO for each.
 - **Real missions:** Apollo 11–17, IM-1, IM-2, Chandrayaan-3, Chang’e 4 and 6, SLIM, Blue Ghost 1 at their real landing moments.
 - **Power check:** rough energy per m² of panel, panel area and battery size for a chosen load.
 - **Bishkek vs the Moon:** the Sun’s path in Bishkek’s sky against the lunar site, for teachers and the public.
@@ -40,7 +41,7 @@ At the lunar south pole the Sun never rises more than about 1.5° above the flat
 1. **Against NASA’s illumination map.** NASA PGDA average solar illumination of the south pole (Mazarico et al. 2011, averaged over 18.6 years). We compute the same 18.6 years at 20 check points between 85.5° S and the pole, at the surface like NASA: **mean absolute difference 1.6 percentage points, largest 3.3, 19 of 20 points within 3, correlation 0.995.**
 2. **Against NASA’s Earth visibility map** (same product, share of time with any part of Earth in view): **mean absolute difference 0.6 percentage points, correlation 0.997.** Seventeen of the twenty points agree to 0.1.
 3. **Against the Apollo landings.** Sun and Earth altitude and azimuth at the six Apollo touchdowns, compared with the Apollo Lunar Surface Journal: **Sun within 0.05°, Earth within 0.35°** (the Journal itself quotes agreement with Horizons within 0.5°).
-4. **Against a real eclipse.** Without being told, the tool finds the total lunar eclipse of 14 March 2025 at the Blue Ghost landing site: Earth starts to cover the Sun at 05:00 UTC, hides it completely, and uncovers it by 09:50 UTC. Blue Ghost photographed this eclipse from the surface.
+4. **Against a real mission.** For Blue Ghost Mission 1 (landed 2 March 2025) the tool gives 348 hours from touchdown to sunset; Firefly Aerospace reported 346 hours of daylight operations. Without being told, the tool also finds the eclipse of 14 March 2025 at the landing site (Earth covers the Sun between 05:00 and 09:50 UTC), which the lander filmed from the surface.
 5. **Sanity checks of the horizon code:** flat ground gives the expected −0.087° horizon for a 2 m panel; mountains placed north or east appear at azimuth 0° or 90°.
 
 ## How it works
@@ -88,6 +89,7 @@ cd docs && python3 -m http.server 8000
 - USGS, Down-selected Artemis III candidate landing site navigational grids, DOI 10.5066/P1MEQ6UK: https://www.sciencebase.gov/catalog/item/671a6fa8d34efed5620f89f8
 - NASA, Artemis III candidate landing regions update (October 2024): https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/
 - Apollo Lunar Surface Journal, Sun and Earth altitude/azimuth at the Apollo landings: https://www.nasa.gov/history/alsj/alsj-EarthSun_AltAz.html
+- Firefly Aerospace, Blue Ghost Mission 1 completes 14 days of surface operations (346 hours of daylight, eclipse of 14 March 2025): https://fireflyspace.com/news/firefly-aerospace-successfully-completes-14-days-of-surface-operations-on-the-moon
 - Landing coordinates and times of IM-1, IM-2, Chandrayaan-3, Chang’e 4 and 6, SLIM and Blue Ghost 1: public mission reports (rounded; used for illustration).
 
 ## Use of AI
