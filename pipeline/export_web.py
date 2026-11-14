@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 
 from visibility import (EARTH_RADIUS, MASTS, RESULTS_DIR, SITES_FILE, SUN_RADIUS, TERRAIN_DIR,
-                        load_horizon, load_track, visible_share)
+                        eclipse_factor, load_horizon, load_track, visible_share)
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB_DATA = ROOT / "docs" / "data"          # GitHub Pages serves the docs/ folder
@@ -110,20 +110,23 @@ def main():
                 print(f"  {site['name']}: planning window differs from the other sites, skipped")
                 continue
             sun_az, sun_el, earth_az, earth_el = plan_tracks
+            eclipse = eclipse_factor(sun_az, sun_el, earth_az, earth_el)
             entry["shares"] = {}
             for mast in MASTS:
                 az_grid, horizon = horizons[mast]
                 entry["shares"][f"sun{mast}"] = share_bytes(
-                    visible_share(sun_az, sun_el, az_grid, horizon, SUN_RADIUS))
+                    visible_share(sun_az, sun_el, az_grid, horizon, SUN_RADIUS) * eclipse)
                 entry["shares"][f"earth{mast}"] = share_bytes(
                     visible_share(earth_az, earth_el, az_grid, horizon, EARTH_RADIUS))
             entry["scores"] = results["windows"]["plan"]["masts"]
+            entry["eclipses"] = results["windows"]["plan"].get("eclipses", [])
 
         mission_block, _ = window_block(site["id"], "mission")
         if mission_block:
             sky["mission"] = mission_block
             entry["landing"] = results["windows"]["mission"].get("landing")
             entry["mission_scores"] = results["windows"]["mission"]["masts"]
+            entry["mission_eclipses"] = results["windows"]["mission"].get("eclipses", [])
 
         if not sky:
             print(f"  {site['name']}: no Horizons data yet")

@@ -148,10 +148,27 @@
   </section>
 
   <section class="card">
+    <h2>Power check (rough estimate)</h2>
+    <p class="sub">For 1 m² of solar panel standing upright and turned toward the Sun (the usual set-up at the poles, like NASA’s vertical solar array concept), 30% efficient, sunlight 1361 W/m². Dust, heat and storage losses are left out.</p>
+    <div class="tiles" id="energy" style="grid-template-columns:repeat(4,1fr);margin:0"></div>
+    <div style="max-width:260px;margin-top:12px"><label for="load">Lander power use (W)</label><input id="load" type="number" min="1" value="100"></div>
+  </section>
+
+  <section class="card">
     <h2>Feasibility calendar: every site, every landing day in 2027–2028</h2>
     <p class="sub" id="calSub">Each cell is one landing day for a mission of the chosen length. Click a cell to open it.</p>
     <div class="scroll"><canvas id="calendar" height="300"></canvas></div>
     <div class="legend" id="calLegend"></div>
+  </section>
+
+  <section class="card">
+    <h2>Bishkek vs the Moon</h2>
+    <p class="sub">Why the lunar south pole is so hard: the path of the Sun across the sky in Bishkek and at the landing site you picked.</p>
+    <div class="two">
+      <canvas id="compare" height="300"></canvas>
+      <div id="compareText"></div>
+    </div>
+    <div class="legend"><span><i style="background:var(--earth)"></i>Bishkek, 21 June</span><span><i style="background:var(--dim)"></i>Bishkek, 21 December</span><span><i style="background:var(--sun)"></i>Sun at the lunar site during your mission</span></div>
   </section>
 
   <section class="card">
@@ -189,6 +206,7 @@ const $ = id => document.getElementById(id);
 const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const fmt = (v, d = 0) => Number.isFinite(v) ? v.toFixed(d) : "–";
 const hoursText = h => !Number.isFinite(h) ? "–" : h >= 48 ? `${(h / 24).toFixed(1)} d` : `${Math.round(h)} h`;
+const SOLAR_CONSTANT = 1361, PANEL_EFFICIENCY = 0.3;   // W/m2 at the Moon; a good space solar cell
 const RULES = {
   none:    { dark: null, black: null, text: "No limits set: the verdict only describes the conditions." },
   viper:   { dark: 50, black: null, text: "NASA’s VIPER rover was designed to survive no more than about 50 hours of darkness." },
@@ -206,6 +224,16 @@ const dayText = ms => new Date(ms).toLocaleDateString("en-GB", { day: "numeric",
 function horizonAt(hor, step, az) {
   const n = hor.length, x = (((az % 360) + 360) % 360) / step, i = Math.floor(x) % n, f = x - Math.floor(x);
   return hor[i] * (1 - f) + hor[(i + 1) % n] * f;
+}
+function eclipseFactor(sAz, sEl, eAz, eEl) {        // share of the Sun NOT covered by Earth (an eclipse seen from the Moon)
+  const r = Math.PI / 180, r1 = S.index.sun_radius, r2 = S.index.earth_radius;
+  const c = Math.sin(sEl * r) * Math.sin(eEl * r) + Math.cos(sEl * r) * Math.cos(eEl * r) * Math.cos((sAz - eAz) * r);
+  const d = Math.acos(Math.max(-1, Math.min(1, c))) / r;
+  if (d >= r1 + r2) return 1;
+  if (d <= r2 - r1) return 0;
+  const a = r1 * r1 * Math.acos((d * d + r1 * r1 - r2 * r2) / (2 * d * r1)) + r2 * r2 * Math.acos((d * d + r2 * r2 - r1 * r1) / (2 * d * r2))
+          - 0.5 * Math.sqrt(Math.max(0, (-d + r1 + r2) * (d + r1 - r2) * (d - r1 + r2) * (d + r1 + r2)));
+  return 1 - Math.min(1, a / (Math.PI * r1 * r1));
 }
 function diskShare(el, horizon, radius) {           // share of a round disk's area above the horizon
   const x = Math.max(-1, Math.min(1, (el - horizon) / radius));
@@ -235,16 +263,21 @@ function shares(site, key) {                         // hourly 0..1 shares for t
 // ---------- numbers for one window ----------
 function windowStats(block, site, i0, i1, shift) {
   const hor = site.horizon[S.mast], step = site.az_step, R = S.index;
-  let sunSum = 0, earthSum = 0, dark = 0, darkMax = 0, black = 0, blackMax = 0, sunAny = 0;
+  let sunSum = 0, earthSum = 0, dark = 0, darkMax = 0, black = 0, blackMax = 0, sunAny = 0, power = 0, eclipse = null;
   for (let i = i0; i < i1; i++) {
-    const s = diskShare(block.sunEl[i], horizonAt(hor, step, block.sunAz[i]) + shift, R.sun_radius);
+    const terrainShare = diskShare(block.sunEl[i], horizonAt(hor, step, block.sunAz[i]) + shift, R.sun_radius);
+    const ecl = terrainShare > 0 ? eclipseFactor(block.sunAz[i], block.sunEl[i], block.earthAz[i], block.earthEl[i]) : 1;
+    if (ecl < 1 && (!eclipse || 1 - ecl > eclipse.cover)) eclipse = { i, cover: 1 - ecl };
+    const s = terrainShare * ecl;
+    power += s * Math.cos(block.sunEl[i] * Math.PI / 180);       // panel standing upright and turned to the Sun
     const e = diskShare(block.earthEl[i], horizonAt(hor, step, block.earthAz[i]) + shift, R.earth_radius);
     sunSum += s; earthSum += e; if (s > 0) sunAny++;
     dark = s === 0 ? dark + 1 : 0; darkMax = Math.max(darkMax, dark);
     black = e === 0 ? black + 1 : 0; blackMax = Math.max(blackMax, black);
   }
   const n = Math.max(1, i1 - i0), h = block.stepMin / 60;
-  return { sun: 100 * sunSum / n, sunAny: 100 * sunAny / n, dark: darkMax * h, earth: 100 * earthSum / n, black: blackMax * h };
+  return { sun: 100 * sunSum / n, sunAny: 100 * sunAny / n, dark: darkMax * h, earth: 100 * earthSum / n, black: blackMax * h,
+           watts: SOLAR_CONSTANT * PANEL_EFFICIENCY * power / n, hours: n * h, eclipse };
 }
 function aboveHorizon(block, site, i, body) {
   const hor = site.horizon[S.mast];
@@ -313,6 +346,7 @@ async function render() {
     hint += g ? ` If the date can move: the nearest landing day that meets the rule is ${dayText(g.ms)} (${g.shift > 0 ? "+" : ""}${g.shift} days, longest darkness ${hoursText(g.st.dark)}).`
               : " No landing day within ±120 days meets this rule at this site.";
   }
+  if (mid.eclipse) hint += ` Eclipse: on ${dayText(block.start + mid.eclipse.i * block.stepMin * 6e4)} Earth passes in front of the Sun and covers up to ${fmt(100 * mid.eclipse.cover)}% of it.`;
   if (cut) hint += " The data window ends before the mission does, so the numbers cover only part of it.";
   $("verdict").innerHTML = `<span class="pill ${hasRule ? (ok ? "go" : "nogo") : "info"}">${hasRule ? (ok ? "GO" : "NO-GO") : "INFO"}</span>
     <div><p>${main}</p><p class="hint">${hint}</p></div>`;
@@ -329,6 +363,15 @@ async function render() {
   ];
   $("tiles").innerHTML = tiles.map(([c, k, v, s]) => `<div class="tile ${c}"><div class="k">${k}</div><div class="v">${v}</div><div class="r">${s}</div></div>`).join("");
 
+  const load = Math.max(1, +$("load").value || 100);
+  const area = mid.watts > 0 ? load / mid.watts : Infinity;
+  $("energy").innerHTML = [
+    ["sun", "Average power", `${fmt(mid.watts)} W`, "per m² of panel over the mission"],
+    ["sun", "Energy", `${fmt(mid.watts * mid.hours / 1000, 1)} kWh`, `per m² over ${S.days} days`],
+    ["sun", "Panel needed", Number.isFinite(area) ? `${fmt(area, 1)} m²` : "no sunlight", `to cover ${load} W on average`],
+    ["sun", "Battery for the night", `${fmt(load * mid.dark / 1000, 1)} kWh`, `${load} W through the longest darkness (${hoursText(mid.dark)})`],
+  ].map(([c, k, v, t]) => `<div class="tile ${c}"><div class="k">${k}</div><div class="v">${v}</div><div class="r">${t}</div></div>`).join("");
+  drawCompare(block, site, landingIdx, i1);
   drawRegion(site);
   drawSky(block, site, landingIdx, i1);
   drawTimeline(block, site, landingIdx, i1);
@@ -388,6 +431,12 @@ function drawTimeline(block, site, i0, i1) {
   axisText(g, "Sun", L - 6, 11, "right"); axisText(g, "Earth", L - 6, 23, "right");
   g.fillStyle = css("--track"); g.fillRect(L, 4, w - L - Rm, 8); g.fillRect(L, 16, w - L - Rm, 8);
   band(sun, S.index.sun_radius, 4, css("--sun")); band(earth, S.index.earth_radius, 16, css("--earth"));
+  let labelled = false;
+  for (let i = i0, k = 0; i < i1; i += step, k++) {
+    if (sun[k] > -S.index.sun_radius && eclipseFactor(block.sunAz[i], block.sunEl[i], block.earthAz[i], block.earthEl[i]) < 1) {
+      g.fillStyle = css("--nogo"); g.fillRect(X(k) - 1.5, 1, 3, 14);
+      if (!labelled) { axisText(g, "eclipse", X(k) + 4, 12, "left", css("--nogo")); labelled = true; } }
+  }
   // grid
   const tick = (hi - lo) > 40 ? 20 : (hi - lo) > 12 ? 5 : 1;
   g.strokeStyle = css("--line"); g.lineWidth = 1;
@@ -397,6 +446,37 @@ function drawTimeline(block, site, i0, i1) {
   for (let d = 0; d <= days; d += dt) { const x = L + d / days * (w - L - Rm); axisText(g, dt < 1 ? `${d * 24}h` : `day ${d}`, x, h - 8); }
   const line = (vals, color) => { g.strokeStyle = color; g.lineWidth = 2; g.beginPath(); vals.forEach((v, k) => k ? g.lineTo(X(k), Y(v)) : g.moveTo(X(k), Y(v))); g.stroke(); };
   line(earth, css("--earth")); line(sun, css("--sun"));
+}
+
+// ---------- Bishkek vs the Moon ----------
+const BISHKEK_LAT = 42.87;
+function sunPath(lat, decl) {                          // Sun's azimuth and elevation through one day
+  const r = Math.PI / 180, out = [];
+  for (let H = -180; H <= 180; H += 2) {
+    const el = Math.asin(Math.sin(lat * r) * Math.sin(decl * r) + Math.cos(lat * r) * Math.cos(decl * r) * Math.cos(H * r)) / r;
+    const az = (Math.atan2(Math.sin(H * r), Math.cos(H * r) * Math.sin(lat * r) - Math.tan(decl * r) * Math.cos(lat * r)) / r + 180) % 360;
+    if (el > 0) out.push([az, el]);
+  }
+  return out;
+}
+function drawCompare(block, site, i0, i1) {
+  const { g, w, h } = setupCanvas($("compare"));
+  const L = 40, Rm = 10, T = 10, B = 26, X = az => L + az / 360 * (w - L - Rm), Y = el => T + (75 - el) / 75 * (h - T - B);
+  g.strokeStyle = css("--line"); g.lineWidth = 1;
+  for (let e = 0; e <= 75; e += 15) { g.beginPath(); g.moveTo(L, Y(e)); g.lineTo(w - Rm, Y(e)); g.stroke(); axisText(g, `${e}°`, L - 6, Y(e) + 4, "right"); }
+  [["N", 0], ["E", 90], ["S", 180], ["W", 270], ["N", 360]].forEach(([t, a]) => axisText(g, t, X(a), h - 6));
+  const path = (pts, color) => { g.strokeStyle = color; g.lineWidth = 3; g.beginPath(); pts.forEach(([a, e], k) => k ? g.lineTo(X(a), Y(e)) : g.moveTo(X(a), Y(e))); g.stroke(); };
+  path(sunPath(BISHKEK_LAT, 23.44), css("--earth")); path(sunPath(BISHKEK_LAT, -23.44), css("--dim"));
+  let maxEl = -90; g.fillStyle = css("--sun");
+  const step = Math.max(1, Math.floor((i1 - i0) / 1500));
+  for (let i = i0; i < i1; i += step) { const e = block.sunEl[i]; maxEl = Math.max(maxEl, e); if (e > 0) { g.beginPath(); g.arc(X(block.sunAz[i]), Y(e), 2, 0, 7); g.fill(); } }
+  const shadow = el => el > 0.05 ? 2 / Math.tan(el * Math.PI / 180) : Infinity;
+  const winter = 90 - BISHKEK_LAT - 23.44, summer = 90 - BISHKEK_LAT + 23.44;
+  $("compareText").innerHTML = `
+    <p><b>In Bishkek</b> the Sun climbs to ${fmt(summer)}° at noon in June and ${fmt(winter)}° in December, and a day lasts 24 hours.</p>
+    <p><b>At ${site.name}</b> the Sun gets no higher than <b>${fmt(maxEl, 1)}°</b> during your ${S.days}-day mission. A Moon “day” lasts about 29.5 Earth days, so the Sun crawls around the horizon instead of crossing the sky.</p>
+    <p>A 2 m tall lander casts a shadow ${Number.isFinite(shadow(maxEl)) ? `about <b>${fmt(shadow(maxEl))} m</b>` : "with no end"} long there, against ${fmt(shadow(winter), 1)} m at noon on a December day in Bishkek. That is why a hill many kilometres away can switch the power off.</p>
+    <p>Earth seen from the Moon is about 1.9° wide, nearly four times the size of the Moon in Bishkek’s sky, and it hardly moves: at the pole it bobs up and down on the horizon once a month.</p>`;
 }
 
 // ---------- region map ----------
@@ -435,17 +515,21 @@ function drawRegion(site) {
   regionView = { reg, X, Y, cell, sunI, darkI, earthI };
 
   const suns = reg.points.map(p => p[sunI]), lo = Math.min(...suns), hi = Math.max(...suns);
-  const c = reg.centre_point, cs = c[`sun_${S.mast}m`], cd = c[`dark_h_${S.mast}m`];
-  const dist = Math.hypot(best[0], best[1]), good = suns.filter(v => v >= 0.8 * hi).length;
+  // headline numbers come from the full calculation of the two sites (0.5° rays, own Horizons data) when available
+  const full = (id, key, fallback) => { const st = S.sites[id] && S.sites[id].scores && S.sites[id].scores[S.mast]; return st ? st[key].value : fallback; };
+  const c = reg.centre_point, b = reg.best, bestId = reg.site_id + "_best";
+  const cs = full(reg.site_id, "sun_pct", c[`sun_${S.mast}m`]), cd = full(reg.site_id, "longest_dark_h", c[`dark_h_${S.mast}m`]);
+  const bs = full(bestId, "sun_pct", b[`sun_${S.mast}m`]), bd = full(bestId, "longest_dark_h", b[`dark_h_${S.mast}m`]), be = full(bestId, "earth_any_pct", b[`earth_${S.mast}m`]);
+  const dist = Math.hypot(b.x_km, b.y_km), good = suns.filter(v => v >= 0.8 * hi).length;
   $("regionTitle").textContent = `Sunlight map of ${reg.name}: where exactly you land decides everything`;
   $("regionText").innerHTML = `
     <p>Inside this one region the Sun is in view from <b>${fmt(lo)}%</b> to <b>${fmt(hi)}%</b> of 2027–2028, depending on the spot
        (${reg.points.length} points, ${reg.spacing_m / 1000} km grid, ${S.mast} m panel).</p>
     <p><b>Centre of the region:</b> ${fmt(cs)}% sunlight, longest darkness ${hoursText(cd)}.<br>
-       <b>Best-lit spot, ${fmt(dist, 1)} km away:</b> ${fmt(best[sunI])}% sunlight, longest darkness ${hoursText(best[darkI])}, Earth in view ${fmt(best[earthI])}% of the time.</p>
+       <b>Best-lit spot, ${fmt(dist, 1)} km from the centre:</b> ${fmt(bs)}% sunlight, longest darkness ${hoursText(bd)}, Earth in view ${fmt(be)}% of the time.</p>
     <p>Only ${good} of ${reg.points.length} grid points come within 80% of the best one. A landing error of a couple of kilometres can turn a good site into a dark one.</p>
     <p>${S.sites[reg.site_id + "_best"] ? `<button data-open="${reg.site_id}_best">Open the best-lit spot</button>` : ""}<button data-open="${reg.site_id}">Open the region centre</button></p>
-    <p class="note">You are looking at: <b>${site.spot === "best" ? "the best-lit spot" : "the region centre"}</b>. The scan uses rays every 1° and the 2 m panel to pick the spot; the two marked sites are then recomputed in full.</p>`;
+    <p class="note">You are looking at: <b>${site.spot === "best" ? "the best-lit spot" : "the region centre"}</b>. The map is a quick scan (rays every 1°); the best spot is picked with the 2 m panel, and the numbers above come from the full calculation of the two marked sites. Grid squares next to the centre can differ a lot from it: that is the point of this map.</p>`;
 }
 
 // ---------- calendar ----------
@@ -495,12 +579,13 @@ function calendarHit(ev) {
 function missionsTable() {
   const rows = Object.values(S.sites).filter(s => s.landing);
   rows.sort((a, b) => parseUTC(b.landing.time_utc) - parseUTC(a.landing.time_utc));
-  $("missions").innerHTML = `<tr><th>Mission</th><th>Landed (UTC)</th><th>Sun at touchdown</th><th>Sunset after landing</th><th>Earth at touchdown</th><th>Horizon used</th></tr>` +
+  $("missions").innerHTML = `<tr><th>Mission</th><th>Landed (UTC)</th><th>Sun at touchdown</th><th>Sunset after landing</th><th>Earth at touchdown</th><th>Eclipse during the mission</th><th>Horizon used</th></tr>` +
     rows.map(s => { const l = s.landing;
       return `<tr class="click" data-id="${s.id}"><td><b>${s.name}</b></td><td class="n">${l.time_utc.replace("T", " ")}</td>
         <td class="n">${fmt(l.sun_el, 1)}° (${fmt(l.sun_above_horizon_deg, 1)}° over local horizon)</td>
         <td class="n">${l.hours_to_sunset === null ? "after the data window" : hoursText(l.hours_to_sunset)}</td>
         <td class="n">${l.earth_el < -S.index.earth_radius ? `<b style="color:var(--nogo)">below horizon (${fmt(l.earth_el, 0)}°)</b>` : fmt(l.earth_el, 1) + "°"}</td>
+        <td class="n">${(s.mission_eclipses || []).length ? s.mission_eclipses.map(e => `${dayText(parseUTC(e.start))}, up to ${fmt(e.max_cover_pct)}% of the Sun`).join("<br>") : "–"}</td>
         <td>${s.horizon_source}</td></tr>`; }).join("");
 }
 function checks() {
@@ -537,7 +622,7 @@ function methodsText() {
   <p><b>Terrain horizon:</b> NASA LOLA polar height map (PGDA, 80 m per pixel${S.index.sites.some(s => s.maps && s.maps.length > 1) ? ", 20 m within 30 km" : ""}). From each site we cast 720 rays, one every 0.5°, out to 150 km and keep the highest terrain angle, corrected for the curve of the Moon. The Moon has no air, so there is no refraction. Sites far from the pole use a smooth Moon: there the Sun and Earth stand high and nearby hills matter little.</p>
   <p><b>Artemis III regions:</b> outlines from the USGS navigational grids (regions from LROC QuickMap). Each outline is scanned on a grid; the Sun and Earth directions of the region centre are turned to each grid point, and the best-lit point is then recomputed in full with its own Horizons data.</p>
   <p><b>Scores:</b> share of the Sun’s and Earth’s disk above the local horizon (Sun 0.53° wide, Earth 1.9° wide). Every number is also shown with the horizon 0.1° higher and lower, as a measure of how sure we are about the terrain.</p>
-  <p><b>What the numbers are not:</b> sunlight in view is not electric power (panel angle, dust and temperature are left out), and Earth in view is not a radio link (antennas and ground stations are left out). Eclipses of the Sun by Earth are not included yet.</p>
+  <p><b>What the numbers are not:</b> sunlight in view is not electric power (panel angle, dust and temperature are left out), and Earth in view is not a radio link (antennas and ground stations are left out). Eclipses are included: seen from the Moon, a lunar eclipse is Earth passing in front of the Sun, and we compute how much of the Sun’s disk Earth covers (Earth’s glowing atmosphere is left out).</p>
   <p><b>AI use:</b> code was written during the hackathon with help from an AI assistant (Claude by Anthropic); every step was run, checked against NASA references and explained by the author.</p>`;
   $("footer").innerHTML = `Data: NASA JPL Horizons · NASA LOLA / PGDA height maps · NASA PGDA average illumination map (Mazarico et al. 2011) · USGS Artemis III navigation grids · Apollo Lunar Surface Journal. Built for NASA Space Apps Challenge 2026, Bishkek. Data generated ${S.index.generated_utc} UTC.`;
 }
@@ -577,6 +662,7 @@ function bind() {
   $("site").onchange = e => { S.siteId = e.target.value; S.mode = "plan"; syncControls(); render(); };
   $("date").onchange = e => { if (e.target.value) { S.landing = parseUTC(e.target.value); render(); } };
   $("days").onchange = e => { S.days = +e.target.value; render(); };
+  $("load").onchange = () => render();
   $("rule").onchange = e => { S.rule = e.target.value; if (S.rule !== "custom") { S.dark = RULES[S.rule].dark; S.black = RULES[S.rule].black; } syncControls(); render(); };
   const lim = (el, key) => el.onchange = e => { S[key] = e.target.value === "" ? null : Math.max(0, +e.target.value); S.rule = "custom"; syncControls(); render(); };
   lim($("maxDark"), "dark"); lim($("maxBlack"), "black");

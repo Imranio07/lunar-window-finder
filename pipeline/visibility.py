@@ -113,6 +113,44 @@ def visible_share(az, el, az_grid, horizon, radius, shift=0.0):
     return (np.arccos(-h) + h * np.sqrt(1.0 - h * h)) / math.pi
 
 
+def eclipse_factor(sun_az, sun_el, earth_az, earth_el):
+    """Share (0..1) of the Sun's disk NOT covered by the Earth's disk.
+    Seen from the Moon, a lunar eclipse is the Earth passing in front of the Sun."""
+    a1, e1, a2, e2 = (np.radians(v) for v in (sun_az, sun_el, earth_az, earth_el))
+    cos_sep = np.sin(e1) * np.sin(e2) + np.cos(e1) * np.cos(e2) * np.cos(a1 - a2)
+    d = np.degrees(np.arccos(np.clip(cos_sep, -1.0, 1.0)))
+    r1, r2 = SUN_RADIUS, EARTH_RADIUS
+    covered = np.zeros_like(d)
+    full = d <= r2 - r1
+    part = (d < r1 + r2) & ~full
+    if part.any():
+        dp = d[part]
+        area = (r1 ** 2 * np.arccos(np.clip((dp ** 2 + r1 ** 2 - r2 ** 2) / (2 * dp * r1), -1, 1))
+                + r2 ** 2 * np.arccos(np.clip((dp ** 2 + r2 ** 2 - r1 ** 2) / (2 * dp * r2), -1, 1))
+                - 0.5 * np.sqrt(np.clip((-dp + r1 + r2) * (dp + r1 - r2) * (dp - r1 + r2) * (dp + r1 + r2), 0, None)))
+        covered[part] = area / (math.pi * r1 ** 2)
+    covered[full] = 1.0
+    return 1.0 - np.clip(covered, 0.0, 1.0)
+
+
+def eclipse_events(minutes, factor, sun_up):
+    """Stretches of time when the Earth covers part of the Sun while the Sun is above the horizon."""
+    mask = (factor < 1.0) & sun_up
+    events, i = [], 0
+    while i < mask.size:
+        if mask[i]:
+            j = i
+            while j + 1 < mask.size and mask[j + 1]:
+                j += 1
+            events.append({"start": str(np.datetime64(int(minutes[i]), "m")),
+                           "end": str(np.datetime64(int(minutes[j]), "m")),
+                           "max_cover_pct": round(100 * (1 - float(factor[i:j + 1].min())), 1)})
+            i = j + 1
+        else:
+            i += 1
+    return events
+
+
 def longest_run_hours(mask, step_hours):
     if not mask.any():
         return 0.0
@@ -181,11 +219,12 @@ def site_results(site, windows_config):
         entry = {"start": str(np.datetime64(int(minutes[0]), "m")),
                  "stop": str(np.datetime64(int(minutes[-1]), "m")),
                  "step_h": step_hours, "masts": {}}
+        eclipse = eclipse_factor(sun_az, sun_el, earth_az, earth_el)
         for mast in masts:
             az_grid, horizon, _ = horizons[mast]
             variants = []
             for shift in (0.0, -SHIFT, SHIFT):
-                sun = visible_share(sun_az, sun_el, az_grid, horizon, SUN_RADIUS, shift)
+                sun = visible_share(sun_az, sun_el, az_grid, horizon, SUN_RADIUS, shift) * eclipse
                 earth = visible_share(earth_az, earth_el, az_grid, horizon, EARTH_RADIUS, shift)
                 variants.append(scores(sun, earth, step_hours))
             entry["masts"][mast] = {
@@ -194,10 +233,13 @@ def site_results(site, windows_config):
                       "high": round(max(v[key] for v in variants), 2)}
                 for key in variants[0]}
 
+        az_grid, horizon, _ = horizons["2"]
+        entry["eclipses"] = eclipse_events(minutes, eclipse,
+                                           visible_share(sun_az, sun_el, az_grid, horizon, SUN_RADIUS) > 0)
+
         if window == "mission":
             landing = int(np.datetime64(site["mission"]["landing_utc"], "m").astype(np.int64))
-            az_grid, horizon, _ = horizons["2"]
-            sun = visible_share(sun_az, sun_el, az_grid, horizon, SUN_RADIUS)
+            sun = visible_share(sun_az, sun_el, az_grid, horizon, SUN_RADIUS)      # terrain only: sunset
             earth = visible_share(earth_az, earth_el, az_grid, horizon, EARTH_RADIUS)
             after = minutes >= landing
             dark = np.flatnonzero(after & (sun == 0))
@@ -337,6 +379,16 @@ def main():
               f" | sunset in {'>' + 'window' if sunset is None else f'{sunset:.0f} h ({sunset / 24:.1f} d)'}"
               f" | Earth hidden in {'never in window' if earthset is None else f'{earthset:.0f} h'}"
               f" | horizon: {record['horizon_source']}")
+
+    print("\nEclipses (Earth in front of the Sun) seen from the real mission sites:")
+    for record in results.values():
+        events = record["windows"].get("mission", {}).get("eclipses", [])
+        for e in events:
+            print(f"  {record['name']:<22} {e['start']} to {e['end']} UTC, up to {e['max_cover_pct']:.0f}% of the Sun covered")
+    plan_counts = {r["name"]: len(r["windows"]["plan"].get("eclipses", [])) for r in results.values() if "plan" in r["windows"]}
+    if plan_counts:
+        top = max(plan_counts, key=plan_counts.get)
+        print(f"  2027-2028: up to {plan_counts[top]} eclipse(s) seen from one site ({top})")
 
     print(f"\nSaved: {RESULTS_DIR}")
 
