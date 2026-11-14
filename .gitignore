@@ -1,0 +1,8 @@
+data/nasa/
+data/artemis/
+data/horizons/
+*.TIF
+*.tif
+*.part
+__pycache__/
+.DS_Store
