@@ -123,6 +123,25 @@
 
   <section class="tiles" id="tiles"></section>
 
+  <section class="card" id="pickCard" style="display:none">
+    <h2>Your own point: click the map or type coordinates</h2>
+    <p class="sub">Shaded relief of the lunar south pole from NASA LOLA (80–90° S). Click anywhere to compute the horizon, the verdict and the calendar row for that exact point.</p>
+    <div class="region" style="grid-template-columns:minmax(260px,460px) 1fr">
+      <canvas id="polar" height="460" style="cursor:crosshair;max-width:460px"></canvas>
+      <div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;max-width:520px">
+          <div><label for="clat">Latitude (° north, south is negative)</label><input id="clat" type="number" step="0.001" min="-90" max="90" value="-85.5"></div>
+          <div><label for="clon">Longitude (° east)</label><input id="clon" type="number" step="0.001" min="-180" max="360" value="30"></div>
+          <button id="cgo" style="font:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--navy2);color:#fff;cursor:pointer">Compute</button>
+        </div>
+        <p class="note" id="pickStatus" style="margin-top:12px">Loading the terrain map…</p>
+        <p class="note">★ best-lit spots of the Artemis III regions (outlines in white) · ● real missions · ○ your point. Up is the direction of longitude 0°, the side that faces Earth.</p>
+        <p class="note">How it works here: the terrain is a 240 m version of the LOLA map, read in your browser; the horizon is found with the same 720 rays. The Sun and Earth directions are taken from the nearest computed site and turned to your point (for Earth with a parallax correction; tested against JPL Horizons at other sites: within 0.04°). Anywhere else on the Moon you can type coordinates: the point is then computed on a smooth Moon.</p>
+        <p class="note"><b>This is a quick look.</b> At 19 sites computed both ways, the 240 m result differs from the 80 m calculation by 2.4 percentage points of sunlight on average, and by up to 15 where a ridge stands within a few hundred metres of the point.</p>
+      </div>
+    </div>
+  </section>
+
   <section class="card" id="regionCard" style="display:none">
     <h2 id="regionTitle">Sunlight map of the region</h2>
     <p class="sub">Every square is one point of our scan: average share of 2027–2028 with the Sun in view. Brighter is better. Hover for numbers.</p>
@@ -267,6 +286,163 @@ function shares(site, key) {                         // hourly 0..1 shares for t
   return site._sh[key];
 }
 
+// ---------- your own point: terrain in the browser ----------
+const T = { meta: null, h: null, shade: null, note: "" };
+const RAD = Math.PI / 180, MOON_R = 1737400, EARTH_DIST = 384400e3;
+function toMap(lat, lon) {                             // south polar stereographic map of the LOLA file, metres
+  const rho = 2 * MOON_R * Math.tan((90 + lat) * RAD / 2);
+  return [rho * Math.sin(lon * RAD), rho * Math.cos(lon * RAD)];
+}
+function fromMap(x, y) { return [2 * Math.atan(Math.hypot(x, y) / (2 * MOON_R)) / RAD - 90, Math.atan2(x, y) / RAD]; }
+function terrainAt(x, y) {                              // bilinear height, NaN outside the map (same as pipeline/horizon.py)
+  const m = T.meta, col = (x - m.left) / m.pixel_m - 0.5, row = (m.top - y) / m.pixel_m - 0.5;
+  if (!(col >= 0 && col <= m.width - 1 && row >= 0 && row <= m.height - 1)) return NaN;
+  const c0 = Math.min(Math.floor(col), m.width - 2), r0 = Math.min(Math.floor(row), m.height - 2), fc = col - c0, fr = row - r0, i = r0 * m.width + c0, h = T.h;
+  return (h[i] * (1 - fc) + h[i + 1] * fc) * (1 - fr) + (h[i + m.width] * (1 - fc) + h[i + m.width + 1] * fc) * fr;
+}
+function smoothHorizon(mast) { return new Float32Array(720).fill(-Math.sqrt(2 * mast / MOON_R) / RAD); }
+function terrainHorizon(lat, lon, masts) {             // 720 rays out to 150 km, highest terrain angle; null if the point is off the map
+  if (!T.h) return null;
+  const m = T.meta, [px, py] = toMap(lat, lon), ground = terrainAt(px, py);
+  if (!Number.isFinite(ground)) return null;
+  const l = lon * RAD, nx = Math.sin(l), ny = Math.cos(l), ex = Math.cos(l), ey = -Math.sin(l);
+  const steps = Math.floor(m.max_dist_m / m.pixel_m + 1e-9), out = masts.map(() => new Float32Array(720));
+  let offMap = 0;
+  for (let a = 0; a < 720; a++) {
+    const az = a * 0.5 * RAD, dx = Math.sin(az) * ex + Math.cos(az) * nx, dy = Math.sin(az) * ey + Math.cos(az) * ny;
+    const best = masts.map(() => -Infinity); let last = NaN;
+    for (let k = 1; k <= steps; k++) {
+      const d = k * m.pixel_m, h = terrainAt(px + dx * d, py + dy * d); last = h;
+      if (h !== h) continue;
+      const base = (h - ground - d * d / (2 * MOON_R)) / d;
+      for (let j = 0; j < masts.length; j++) { const t = base - masts[j] / d; if (t > best[j]) best[j] = t; }
+    }
+    if (last !== last) offMap++;
+    for (let j = 0; j < masts.length; j++) out[j][a] = best[j] === -Infinity ? -Math.sqrt(2 * masts[j] / MOON_R) / RAD : Math.atan(best[j]) / RAD;
+  }
+  return { horizon: out, ground, offMap: offMap / 720 };
+}
+function skyAxes(lat, lon) {                           // east, north, up of a site in Moon-fixed coordinates
+  const p = lat * RAD, l = lon * RAD;
+  return [[-Math.sin(l), Math.cos(l), 0], [-Math.sin(p) * Math.cos(l), -Math.sin(p) * Math.sin(l), Math.cos(p)], [Math.cos(p) * Math.cos(l), Math.cos(p) * Math.sin(l), Math.sin(p)]];
+}
+function turnTrack(az, el, from, to, distance) {       // directions seen at one site -> directions seen at another site
+  const [E, N, U] = skyAxes(from.lat, from.lon), [E2, N2, U2] = skyAxes(to.lat, to.lon), n = az.length, outAz = new Float32Array(n), outEl = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const a = az[i] * RAD, e = el[i] * RAD, ce = Math.cos(e), s1 = ce * Math.sin(a), s2 = ce * Math.cos(a), s3 = Math.sin(e);
+    let x = s1 * E[0] + s2 * N[0] + s3 * U[0], y = s1 * E[1] + s2 * N[1] + s3 * U[1], z = s1 * E[2] + s2 * N[2] + s3 * U[2];
+    if (distance) {                                    // parallax: the body is close enough for the two sites to see it in slightly different directions
+      x = MOON_R * U[0] + distance * x - MOON_R * U2[0]; y = MOON_R * U[1] + distance * y - MOON_R * U2[1]; z = MOON_R * U[2] + distance * z - MOON_R * U2[2];
+      const len = Math.hypot(x, y, z); x /= len; y /= len; z /= len;
+    }
+    outEl[i] = Math.asin(Math.max(-1, Math.min(1, x * U2[0] + y * U2[1] + z * U2[2]))) / RAD;
+    outAz[i] = ((Math.atan2(x * E2[0] + y * E2[1] + z * E2[2], x * N2[0] + y * N2[1] + z * N2[2]) / RAD) + 360) % 360;
+  }
+  return { az: outAz, el: outEl };
+}
+function nearestSite(lat, lon, skip) {
+  const [, , U] = skyAxes(lat, lon); let best = null, bestDot = -2;
+  for (const s of Object.values(S.sites)) { if (s.id === "custom" || s.id === skip) continue; const [, , V] = skyAxes(s.lat, s.lon), dot = U[0] * V[0] + U[1] * V[1] + U[2] * V[2]; if (dot > bestDot) { bestDot = dot; best = s; } }
+  return best;
+}
+const coordText = (lat, lon) => `${fmt(Math.abs(lat), 3)}° ${lat < 0 ? "S" : "N"}, ${fmt(Math.abs(lon), 3)}° ${lon < 0 ? "W" : "E"}`;
+async function makeCustom(lat, lon, refId) {
+  lat = Math.max(-90, Math.min(90, lat)); lon = ((lon + 180) % 360 + 360) % 360 - 180;
+  const ref = refId ? S.sites[refId] : nearestSite(lat, lon), b = (await loadSky(ref.id)).plan;
+  const t = terrainHorizon(lat, lon, [2, 10]);
+  const sun = turnTrack(b.sunAz, b.sunEl, ref, { lat, lon }, 0), earth = turnTrack(b.earthAz, b.earthEl, ref, { lat, lon }, EARTH_DIST);
+  const site = { id: "custom", name: `Your point (${coordText(lat, lon)})`, short: "○ Your point", group: "custom", lat, lon, az_step: 0.5,
+    horizon: { 2: t ? t.horizon[0] : smoothHorizon(2), 10: t ? t.horizon[1] : smoothHorizon(10) },
+    horizon_source: t ? "LOLA terrain, 240 m quick look" : "smooth Moon",
+    source: t ? `your own point (quick look), ground ${fmt(t.ground)} m; terrain from the 240 m LOLA map${t.offMap > 0.01 ? `; ${fmt(100 * t.offMap)}% of the rays leave the 80° S edge of the map before 150 km` : ""}; Sun and Earth turned from ${ref.name}`
+              : `your own point on a smooth Moon (no terrain here); Sun and Earth turned from ${ref.name}`,
+    shares: {}, _sh: {} };
+  S.sky.custom = { plan: { start: b.start, stepMin: b.stepMin, n: b.n, sunAz: sun.az, sunEl: sun.el, earthAz: earth.az, earthEl: earth.el } };
+  for (const mast of ["2", "10"]) {
+    const hor = site.horizon[mast], sb = new Uint8Array(b.n), eb = new Uint8Array(b.n);
+    for (let i = 0; i < b.n; i++) {
+      const sv = diskShare(sun.el[i], horizonAt(hor, 0.5, sun.az[i]), S.index.sun_radius) * eclipseFactor(sun.az[i], sun.el[i], earth.az[i], earth.el[i]);
+      const ev = diskShare(earth.el[i], horizonAt(hor, 0.5, earth.az[i]), S.index.earth_radius);
+      sb[i] = sv > 0 ? Math.max(1, Math.round(sv * 255)) : 0; eb[i] = ev > 0 ? Math.max(1, Math.round(ev * 255)) : 0;
+    }
+    site._sh["sun" + mast] = sb; site._sh["earth" + mast] = eb;
+  }
+  S.sites.custom = site;
+  let group = $("customGroup");
+  if (!group) { group = document.createElement("optgroup"); group.id = "customGroup"; group.label = "Your own point"; $("site").prepend(group); }
+  group.innerHTML = `<option value="custom">Your point (${coordText(lat, lon)})</option>`;
+  $("clat").value = lat.toFixed(3); $("clon").value = lon.toFixed(3);
+  S.siteId = "custom";
+  if (S.mode !== "plan") { S.mode = "plan"; S.landing = parseUTC(S.index.plan.start); }
+  syncControls(); await render();
+  return site;
+}
+async function loadTerrain() {
+  try {
+    const meta = await (await fetch("data/terrain.json", { cache: "no-cache" })).json();
+    $("pickCard").style.display = "";
+    const img = new Image(); img.src = "data/" + meta.file; await img.decode();
+    const c = document.createElement("canvas"); c.width = meta.width; c.height = meta.height;
+    const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(img, 0, 0);
+    const px = g.getImageData(0, 0, meta.width, meta.height).data, h = new Float32Array(meta.width * meta.height);
+    for (let i = 0, j = 0; i < h.length; i++, j += 4) h[i] = px[j + 2] > 127 ? meta.offset_m + meta.step_m * (px[j] * 256 + px[j + 1]) : NaN;
+    T.meta = meta; T.h = h;
+    // self-check 1: projection and heights against the points written by pipeline/export_terrain.py
+    let worst = 0;
+    for (const k of meta.checks) { const [x, y] = toMap(k.lat, k.lon); worst = Math.max(worst, Math.hypot(x - k.x, y - k.y), Math.abs(terrainAt(k.x, k.y) - k.h) * 20); }
+    // self-check 2: the JavaScript horizon against the Python horizon on the same map
+    const mine = terrainHorizon(meta.test.lat, meta.test.lon, [2]); let diff = 0;
+    if (mine) meta.test.horizon_2m_deg.forEach((v, i) => { diff = Math.max(diff, Math.abs(v - mine.horizon[0][i])); });
+    T.check = { map_m: worst, horizon_deg: diff };
+    if (worst > 60 || diff > 0.05 || !mine) { T.h = null; throw new Error(`self-check failed (map ${worst.toFixed(0)} m, horizon ${diff.toFixed(3)} deg)`); }
+    buildShade(); drawPolar();
+    $("pickStatus").innerHTML = `Terrain map ready: ${meta.width} × ${meta.height} pixels at ${meta.pixel_m} m. Self-check passed: the horizon computed in your browser matches the Python pipeline within ${Math.max(diff, 0.001).toFixed(3)}°.`;
+    if (S.pendingCustom) { const q = S.pendingCustom; S.pendingCustom = null; await makeCustom(q.lat, q.lon); }
+  } catch (err) {
+    if (T.meta) $("pickStatus").textContent = `The terrain map could not be used (${err.message}). You can still type coordinates: points are then computed on a smooth Moon.`;
+    else $("pickCard").style.display = "none";
+    console.warn("terrain:", err);
+  }
+}
+function buildShade() {                                // shaded relief, drawn once
+  const m = T.meta, n = 600, f = m.width / n, c = document.createElement("canvas"); c.width = c.height = n;
+  const g = c.getContext("2d"), im = g.createImageData(n, n), at = (r, q) => T.h[Math.min(m.height - 1, Math.max(0, Math.round(r * f))) * m.width + Math.min(m.width - 1, Math.max(0, Math.round(q * f)))];
+  for (let r = 0; r < n; r++) for (let q = 0; q < n; q++) {
+    const z = at(r, q), dzdx = (at(r, q + 1) - at(r, q - 1)) / (2 * f * m.pixel_m), dzdy = (at(r - 1, q) - at(r + 1, q)) / (2 * f * m.pixel_m);
+    let v = 0.5 + 2.2 * (-dzdx * 0.707 + dzdy * 0.707); v = Math.max(0.05, Math.min(1, v)) * (0.75 + 0.25 * Math.max(0, Math.min(1, (z + 5000) / 12000)));
+    const i = 4 * (r * n + q); im.data[i] = 70 + 150 * v; im.data[i + 1] = 72 + 145 * v; im.data[i + 2] = 82 + 135 * v; im.data[i + 3] = z === z ? 255 : 0;
+  }
+  g.putImageData(im, 0, 0); T.shade = c;
+}
+let polarView = null;
+function drawPolar() {
+  if (!T.shade) return;
+  const { g, w, h } = setupCanvas($("polar")), m = T.meta, size = Math.min(w, h), span = m.width * m.pixel_m;
+  const X = x => (x - m.left) / span * size, Y = y => (m.top - y) / span * size;
+  polarView = { X, Y, size, span };
+  g.drawImage(T.shade, 0, 0, size, size);
+  g.strokeStyle = "rgba(255,255,255,.35)"; g.lineWidth = 1; g.font = "11px -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+  for (const lat of [-88, -85, -82]) { const r = 2 * MOON_R * Math.tan((90 + lat) * RAD / 2) / span * size; g.beginPath(); g.arc(X(0), Y(0), r, 0, 7); g.stroke(); axisText(g, `${-lat}° S`, X(0) + 3, Y(0) - r - 3, "left", "rgba(255,255,255,.75)"); }
+  axisText(g, "0° (Earth side)", size / 2, 13, "center", "rgba(255,255,255,.85)"); axisText(g, "180°", size / 2, size - 5, "center", "rgba(255,255,255,.85)");
+  axisText(g, "90° E", size - 4, size / 2 - 4, "right", "rgba(255,255,255,.85)"); axisText(g, "90° W", 4, size / 2 - 4, "left", "rgba(255,255,255,.85)");
+  g.strokeStyle = "#fff"; g.lineWidth = 1.2;
+  for (const reg of Object.values(S.index.regions || {})) { const [cx, cy] = toMap(reg.centre.lat, reg.centre.lon);
+    reg.outline_km.forEach(ring => { g.beginPath(); ring.forEach(([dx, dy], k) => k ? g.lineTo(X(cx + dx * 1000), Y(cy + dy * 1000)) : g.moveTo(X(cx + dx * 1000), Y(cy + dy * 1000))); g.closePath(); g.stroke(); }); }
+  for (const s of Object.values(S.sites)) {
+    if (s.lat > -80 || s.spot === "centre") continue;
+    const [x, y] = toMap(s.lat, s.lon), sel = s.id === S.siteId;
+    if (s.id === "custom") { g.strokeStyle = "#fff"; g.lineWidth = 2.5; g.beginPath(); g.arc(X(x), Y(y), 7, 0, 7); g.stroke(); g.strokeStyle = css("--nogo"); g.lineWidth = 1.5; g.beginPath(); g.arc(X(x), Y(y), 10, 0, 7); g.stroke(); }
+    else if (s.spot === "best") { g.fillStyle = css("--sun"); g.font = `${sel ? 17 : 13}px sans-serif`; g.textAlign = "center"; g.fillText("★", X(x), Y(y) + 5); }
+    else { g.fillStyle = css("--earth"); g.beginPath(); g.arc(X(x), Y(y), sel ? 5 : 3.5, 0, 7); g.fill(); }
+  }
+}
+function polarPoint(ev) {
+  if (!polarView) return null;
+  const r = $("polar").getBoundingClientRect(), v = polarView, m = T.meta, x = m.left + (ev.clientX - r.left) / v.size * v.span, y = m.top - (ev.clientY - r.top) / v.size * v.span;
+  const [lat, lon] = fromMap(x, y), z = terrainAt(x, y);
+  return Number.isFinite(z) ? { lat, lon, z } : null;
+}
+
 // ---------- numbers for one window ----------
 function windowStats(block, site, i0, i1, shift) {
   const hor = site.horizon[S.mast], step = site.az_step, R = S.index;
@@ -385,6 +561,7 @@ async function render() {
   drawTimeline(block, site, landingIdx, i1);
   drawCalendar();
   drawRanking();
+  drawPolar();
   writeHash();
 }
 
@@ -542,7 +719,7 @@ function drawRegion(site) {
 }
 
 // ---------- calendar ----------
-const shortName = s => s.spot === "best" ? "★ " + s.name.replace(", best-lit spot", "") : s.name;
+const shortName = s => s.short || (s.spot === "best" ? "★ " + s.name.replace(", best-lit spot", "") : s.name);
 let calCells = null;
 function drawCalendar() {
   const cv = $("calendar"), rows = Object.values(S.sites).filter(s => s.shares && s.spot !== "centre");
@@ -652,18 +829,23 @@ function methodsText() {
   <p><b>Sun and Earth positions:</b> NASA JPL Horizons, apparent azimuth and elevation for a point on the lunar surface, every hour for 2027–2028 (every 10 minutes around real landings). Horizons includes the Moon’s orbit and libration.</p>
   <p><b>Terrain horizon:</b> NASA LOLA polar height map (PGDA, 80 m per pixel${S.index.sites.some(s => s.maps && s.maps.length > 1) ? ", 20 m within 30 km" : ""}). From each site we cast 720 rays, one every 0.5°, out to 150 km and keep the highest terrain angle, corrected for the curve of the Moon. The Moon has no air, so there is no refraction. Sites far from the pole use a smooth Moon: there the Sun and Earth stand high and nearby hills matter little.</p>
   <p><b>Artemis III regions:</b> outlines from the USGS navigational grids (regions from LROC QuickMap). Each outline is scanned on a grid; the Sun and Earth directions of the region centre are turned to each grid point, and the best-lit point is then recomputed in full with its own Horizons data.</p>
+  <p><b>Your own point:</b> for a point picked on the map the page computes the horizon itself, from a 240 m version of the LOLA map (the resolution of NASA’s 2011 illumination study), and turns the Sun and Earth directions of the nearest computed site to that point. It is a quick look: ridges closer than about 1 km are smoothed more than in the 80 m calculation used for the listed sites.</p>
   <p><b>Scores:</b> share of the Sun’s and Earth’s disk above the local horizon (Sun 0.53° wide, Earth 1.9° wide). Every number is also shown with the horizon 0.1° higher and lower, as a measure of how sure we are about the terrain.</p>
+  <p><b>Edge of the map:</b> the height map ends at 80° S. For sites north of about 85° S a part of the 150 km search radius lies beyond that edge, and terrain there is not counted (for Peak near Cabeus B about a fifth of the rays).</p>
   <p><b>What the numbers are not:</b> sunlight in view is not electric power (panel angle, dust and temperature are left out), and Earth in view is not a radio link (antennas and ground stations are left out). Eclipses are included: seen from the Moon, a lunar eclipse is Earth passing in front of the Sun, and we compute how much of the Sun’s disk Earth covers (Earth’s glowing atmosphere is left out).</p>
   <p><b>AI use:</b> code was written during the hackathon with help from an AI assistant (Claude by Anthropic); every step was run, checked against NASA references and explained by the author.</p>`;
   $("footer").innerHTML = `Data: NASA JPL Horizons · NASA LOLA / PGDA height maps · NASA PGDA average illumination map (Mazarico et al. 2011) · USGS Artemis III navigation grids · Apollo Lunar Surface Journal. Built for NASA Space Apps Challenge 2026, Bishkek. Data generated ${S.index.generated_utc} UTC.`;
 }
 
 // ---------- url state ----------
-function writeHash() { history.replaceState(null, "", `#${S.siteId}|${S.mode}|${isoUTC(S.landing)}|${S.days}|${S.mast}|${S.rule}|${S.dark ?? ""}|${S.black ?? ""}`); }
+function writeHash() { const c = S.siteId === "custom" ? `|${S.sites.custom.lat.toFixed(4)},${S.sites.custom.lon.toFixed(4)}` : "";
+  history.replaceState(null, "", `#${S.siteId}|${S.mode}|${isoUTC(S.landing)}|${S.days}|${S.mast}|${S.rule}|${S.dark ?? ""}|${S.black ?? ""}${c}`); }
 function readHash() {
   const p = decodeURIComponent(location.hash.slice(1)).split("|");
-  if (p.length < 8 || !S.sites[p[0]]) return false;
-  Object.assign(S, { siteId: p[0], mode: p[1], landing: parseUTC(p[2]), days: +p[3], mast: p[4], rule: p[5], dark: p[6] === "" ? null : +p[6], black: p[7] === "" ? null : +p[7] });
+  const custom = p[0] === "custom" && p[8] ? p[8].split(",").map(Number) : null;
+  if (p.length < 8 || !(S.sites[p[0]] || custom)) return false;
+  Object.assign(S, { siteId: custom ? S.index.sites[0].id : p[0], mode: custom ? "plan" : p[1], landing: parseUTC(p[2]), days: +p[3], mast: p[4], rule: p[5], dark: p[6] === "" ? null : +p[6], black: p[7] === "" ? null : +p[7] });
+  if (custom && custom.every(Number.isFinite)) S.pendingCustom = { lat: custom[0], lon: custom[1] };
   return true;
 }
 
@@ -715,6 +897,13 @@ function bind() {
     tip.style.display = "block"; tip.style.left = Math.min(ev.clientX + 14, innerWidth - 290) + "px"; tip.style.top = ev.clientY + 14 + "px"; };
   map.onmouseleave = () => tip.style.display = "none";
   $("regionText").onclick = ev => { const b = ev.target.closest("button[data-open]"); if (b && S.sites[b.dataset.open]) { S.siteId = b.dataset.open; S.mode = "plan"; syncControls(); render(); } };
+  const polar = $("polar");
+  polar.onmousemove = ev => { const q = polarPoint(ev); if (!q) { tip.style.display = "none"; return; }
+    tip.innerHTML = `${coordText(q.lat, q.lon)}<br>ground ${fmt(q.z)} m · click to compute this point`;
+    tip.style.display = "block"; tip.style.left = Math.min(ev.clientX + 14, innerWidth - 290) + "px"; tip.style.top = ev.clientY + 14 + "px"; };
+  polar.onmouseleave = () => tip.style.display = "none";
+  polar.onclick = ev => { const q = polarPoint(ev); if (q) makeCustom(q.lat, q.lon); };
+  $("cgo").onclick = () => { const lat = +$("clat").value, lon = +$("clon").value; if (Number.isFinite(lat) && Number.isFinite(lon)) makeCustom(lat, lon); };
   $("rank").onclick = ev => { const tr = ev.target.closest("tr[data-id]"); if (tr) { S.siteId = tr.dataset.id; syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); } };
   $("missions").onclick = ev => { const tr = ev.target.closest("tr[data-id]"); if (tr) openMission(tr.dataset.id); };
   let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(() => { render(); checks(); }, 150); });
@@ -746,6 +935,7 @@ function bind() {
   if (!readHash()) { S.siteId = (S.index.sites.find(s => s.spot === "best") || S.index.sites[0]).id; S.landing = parseUTC(S.index.plan.start); }
   bind(); syncControls(); missionsTable(); checks(); methodsText();
   await render();
+  loadTerrain();
 })();
 </script>
 </body>

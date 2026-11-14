@@ -27,6 +27,7 @@ Live tool: https://imranio07.github.io/lunar-window-finder/
 - See the sky with the real terrain silhouette and the paths of the Sun and Earth, and a timeline of both above the local horizon, including eclipses (Earth passing in front of the Sun).
 - Compare everything at once in the feasibility calendar: every site against every landing day of 2027–2028, coloured GO / NO-GO for the chosen rule. Click a cell to open it.
 - Rank all sites for the chosen landing date in one table.
+- Pick your own point: click anywhere on a shaded-relief map of the south pole, or type any lunar coordinates. The page computes the horizon of that point in the browser and gives the verdict and a calendar row for it.
 - Explore a sunlight map of each Artemis III candidate region (about 400 points per region) and jump to its best-lit spot.
 - Open thirteen real missions at their real landing moment.
 - Get a rough power check (energy per square metre of panel, panel area, battery for the longest night).
@@ -38,7 +39,7 @@ Live tool: https://imranio07.github.io/lunar-window-finder/
 2. Terrain horizon: NASA LOLA south-pole height map at 80 m per pixel. From each site we cast 720 rays (every 0.5°) out to 150 km and keep the highest terrain angle, corrected for the curve of the Moon: angle = atan((h − h0 − d²/2R) / d). The Moon has no air, so there is no refraction.
 3. Visibility: the share of the Sun’s disk (0.53° wide) and Earth’s disk (1.9° wide) above the local horizon at each time step, and the share of the Sun covered by Earth during eclipses.
 4. Region scan: the USGS outlines of the nine Artemis III regions are covered with a grid; the Sun and Earth directions of the region centre are rotated to each grid point; the best-lit point is then recomputed in full.
-5. A single static web page (HTML and JavaScript, no server, no external libraries) draws everything and repeats the same formulas in the browser, so every control responds instantly.
+5. A single static web page (HTML and JavaScript, no server, no external libraries) draws everything and repeats the same formulas in the browser, so every control responds instantly. For a clicked point it reads a 240 m version of the LOLA map and casts the same 720 rays itself; its result matches the Python pipeline within 0.001°.
 
 **What we found**
 
@@ -56,7 +57,7 @@ Live tool: https://imranio07.github.io/lunar-window-finder/
 
 **Limits we state openly**
 
-Sunlight in view is not electric power, and Earth in view is not a radio link: panel angle, dust, temperature, antennas and ground stations are not modelled. The 80 m height map smooths ridges closer than about 1 km. The best-lit spots are our result, not NASA’s selection.
+Sunlight in view is not electric power, and Earth in view is not a radio link: panel angle, dust, temperature, antennas and ground stations are not modelled. The 80 m height map smooths ridges closer than about 1 km and ends at 80° S, so for sites north of about 85° S some far terrain is not counted. The click-any-point mode is a quick look on a 240 m map: at 19 sites computed both ways it differs from the full calculation by 2.4 percentage points of sunlight on average, and by up to 15 next to a close ridge. The best-lit spots are our result, not NASA’s selection.
 
 **Tools:** Python (NumPy, Rasterio, Requests), JavaScript, HTML and CSS, Git, GitHub Pages.
 

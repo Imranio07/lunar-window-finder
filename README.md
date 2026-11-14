@@ -19,6 +19,7 @@ At the lunar south pole the Sun never rises more than about 1.5° above the flat
 - **Sunlight map of every Artemis III candidate region:** about 400 points per region, showing how a shift of a few kilometres changes everything, and the **best-lit spot**.
 - **Feasibility calendar:** every site × every landing day of 2027–2028, coloured by the chosen rule.
 - **Compare all sites** for the chosen landing date in one ranked table, GO / NO-GO for each.
+- **Your own point:** click any spot on a shaded-relief map of the south pole, or type coordinates anywhere on the Moon. The page computes the horizon for that point in the browser (240 m LOLA map) and gives the verdict and a calendar row for it.
 - **Real missions:** Apollo 11–17, IM-1, IM-2, Chandrayaan-3, Chang’e 4 and 6, SLIM, Blue Ghost 1 at their real landing moments.
 - **Power check:** rough energy per m² of panel, panel area and battery size for a chosen load.
 - **Bishkek vs the Moon:** the Sun’s path in Bishkek’s sky against the lunar site, for teachers and the public.
@@ -53,6 +54,7 @@ At the lunar south pole the Sun never rises more than about 1.5° above the flat
 | 2b | `pipeline/artemis_regions.py`, `pipeline/region_scan.py` | USGS outlines of the nine Artemis III regions; grid scan of each region; the best-lit spot gets its own full calculation. |
 | 3 | `pipeline/visibility.py` | Share of the Sun’s and Earth’s disk above the local horizon at every time step, eclipses, scores, ranges and the checks. |
 | 4 | `pipeline/export_web.py` + `docs/index.html` | Packs the results; one static page draws everything in the browser (no server, no external libraries). |
+| 5 | `pipeline/export_terrain.py` | Shrinks the LOLA map to 240 m and packs it into a PNG, so the page can compute the horizon of any clicked point in the browser. |
 
 **Formula of the horizon:** for terrain height *h* at distance *d* from a site at height *h₀* (ground + panel), the angle is `atan((h − h₀ − d²/2R) / d)` with *R* = 1737.4 km, and the horizon in each direction is the largest such angle.
 
@@ -61,6 +63,8 @@ At the lunar south pole the Sun never rises more than about 1.5° above the flat
 - Sunlight in view is not electric power: panel angle, dust and temperature are not modelled (the power card is a rough estimate).
 - Earth in view is not a radio link: antennas and ground stations are not modelled.
 - The 80 m height map smooths ridges closer than about 1 km; the ±0.1° range shows the effect of small horizon errors. Sites far from the pole use a smooth Moon.
+- The height map ends at 80° S: for sites north of about 85° S a part of the 150 km search radius lies beyond that edge and is not counted.
+- The click-any-point mode is a quick look on a 240 m map. At 19 sites computed both ways it differs from the 80 m calculation by 2.4 percentage points of sunlight on average and by up to 15 where a ridge stands within a few hundred metres. Its Sun and Earth directions are turned from the nearest computed site (checked against JPL Horizons: within 0.04°); the browser horizon code matches the Python pipeline within 0.001°.
 - Artemis III region centres come from USGS outlines; the best-lit spots are our own result, not NASA’s choice.
 
 ## Run it yourself
@@ -77,6 +81,7 @@ python3 pipeline/fetch_horizons.py      # best-lit spots
 python3 pipeline/horizon.py
 python3 pipeline/visibility.py
 python3 pipeline/export_web.py
+python3 pipeline/export_terrain.py
 cd docs && python3 -m http.server 8000
 ```
 
