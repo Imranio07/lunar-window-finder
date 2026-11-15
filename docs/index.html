@@ -546,6 +546,7 @@ async function render() {
   if (sunUp < -S.index.sun_radius) hint += ` At touchdown the Sun is ${fmt(-sunUp, 1)}° below the local horizon.`;
   if (site.slope_deg !== null && site.slope_deg !== undefined)
     hint += ` Ground slope here: ${fmt(site.slope_deg, 1)}° (${site.slope_src || "80 m map"}${site.slope_deg <= HLS_SLOPE ? ", under" : ", over"} the ${HLS_SLOPE}° crew-lander limit).`;
+  else if (S.slope !== null) hint += " Ground slope is not known here (no terrain map at this site), so the slope limit is not checked.";
   if (steep) hint += ` <b>The ground is steeper than your ${S.slope}° limit: no landing date fixes that, pick another spot.</b>`;
   if (hasRule && !ok && !steep && S.mode === "plan") {
     const g = nearestGoodDay(site, S.landing);
@@ -813,7 +814,9 @@ function drawRanking() {
   rows.forEach(r => r.ok = passes(r.st) && slopeOK(r.s));
   rows.sort((a, b) => (hasRule ? b.ok - a.ok : 0) || b.st.sun - a.st.sun);
   $("rankSub").textContent = `Landing ${dayText(S.landing)} ${isoUTC(S.landing).slice(11)} UTC, ${S.days}-day mission, ${S.mast} m ${S.mast === "2" ? "deck" : "mast"}` +
-    (hasRule ? `. ${rows.filter(r => r.ok).length} of ${rows.length} sites meet the rule.` : ". Sorted by sunlight; pick a mission rule to see GO / NO-GO.") + " Click a row to open the site.";
+    (hasRule ? `. ${rows.filter(r => r.ok).length} of ${rows.length} sites meet the rule.` : ". Sorted by sunlight; pick a mission rule to see GO / NO-GO.") + " Click a row to open the site." +
+    (S.slope !== null && rows.some(r => r.s.slope_deg === null || r.s.slope_deg === undefined)
+      ? " A dash in the last column: no terrain map at that site, so the slope limit is not checked there." : "");
   $("rank").innerHTML = `<tr><th>Site</th>${hasRule ? "<th>Verdict</th>" : ""}<th>Sun in view</th><th>Longest darkness</th><th>Earth in view</th><th>Longest Earth blackout</th><th>Ground slope</th></tr>` +
     rows.map(({ s, st, ok }) => `<tr class="click" data-id="${s.id}"${s.id === S.siteId ? ' style="background:var(--hover)"' : ""}><td>${s.id === S.siteId ? "<b>" + shortName(s) + "</b>" : shortName(s)}</td>
       ${hasRule ? `<td><b style="color:var(${ok ? "--go" : "--nogo"})">${ok ? "GO" : "NO-GO"}</b></td>` : ""}

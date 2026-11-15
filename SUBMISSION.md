@@ -11,7 +11,7 @@ Lunar Window Finder
 
 ## High-Level Project Summary
 
-Lunar Window Finder is a one-screen web tool that tells a mission planner, a teacher or anyone curious whether a lunar lander will have sunlight for its solar panels and a direct line of sight to Earth at a chosen site on chosen dates. At the Moon’s south pole the Sun never rises more than about 1.5° above a flat horizon, so mountains decide everything; we compute the real horizon of each site from NASA LOLA terrain and combine it with Sun and Earth positions from NASA JPL Horizons for every hour of 2027–2028. The tool gives a one-sentence GO / NO-GO verdict against a mission rule (for example “survives at most 50 hours of darkness”), and if the answer is NO-GO it finds the nearest landing date that works, which is exactly the “launch slipped” situation described in the challenge. It covers the nine Artemis III candidate regions, their best-lit spots found by our own scan, thirteen real missions from Apollo 11 to Blue Ghost, and any point you click near the pole. Its numbers match NASA’s published illumination map within 1.6 percentage points on average, and it shows why a move of a few kilometres can change sunlight from 2% to 64% of the time.
+Lunar Window Finder is a one-screen web tool that tells a mission planner, a teacher or anyone curious whether a lunar lander will have sunlight for its solar panels and a direct line of sight to Earth at a chosen site on chosen dates. At the Moon’s south pole the Sun never rises more than about 1.5° above a flat horizon, so mountains decide everything; we compute the real horizon of each site from NASA LOLA terrain and combine it with Sun and Earth positions from NASA JPL Horizons for every hour of 2027–2028. The tool gives a one-sentence GO / NO-GO verdict against a mission rule (for example “survives at most 50 hours of darkness”), and if the answer is NO-GO it finds the nearest landing date that works, which is exactly the “launch slipped” situation described in the challenge. It covers the nine Artemis III candidate regions, their best-lit spots found by our own scan, thirteen real missions from Apollo 11 to Blue Ghost, and any point you click near the pole. Its numbers match NASA’s published illumination map within 1.6 percentage points on average, and it shows why a move of a few kilometres can change sunlight from 2% to 64% of the time. New on day 2: it also checks landing safety, the ground slope from the same NASA map against the 5° limit of NASA’s crew lander.
 
 ## Link to Project Demo
 
@@ -63,6 +63,20 @@ Live tool (no login needed): https://imranio07.github.io/lunar-window-finder/
 **Limits we state openly**
 
 Sunlight in view is not electric power, and Earth in view is not a radio link: panel angle, dust, temperature, antennas and ground stations are not modelled. The 80 m height map smooths ridges closer than about 1 km and ends at 80° S, so for sites north of about 85° S some far terrain is not counted. The click-any-point mode is a quick look on a 240 m map: at 19 sites computed both ways it differs from the full calculation by 2.4 percentage points of sunlight on average, and by up to 15 next to a close ridge. The best-lit spots are our result, not NASA’s selection.
+
+**Landing safety: ground slope (added on day 2)**
+
+Sunlight is not enough: a lander also needs gentle ground. IM-2 Athena (March 2025) ended on its side in a crater. The tool measures the ground slope from the same NASA LOLA 80 m map (height difference between points 80 m on either side) at every site and at every point of the region maps.
+
+- New rule “Max ground slope”: 5° (the limit for NASA’s crew lander used in Artemis III site studies), 10° or 15°. A site steeper than the limit is NO-GO on every date, and the tool says that no landing date fixes it.
+- Slope map of each Artemis III region, with the best-lit point that is also gentle enough marked “safe”.
+- Slope column in the comparison table; steep sites are marked in the calendar.
+
+What we found: with the 5° limit, 4 of the 9 best-lit spots are too steep (Peak near Cabeus B, Haworth, Mons Mouton Plateau, Nobile Rim 2). In Peak near Cabeus B only 5 of 400 scan points are under 5°. In Slater Plain 26% of the points are, and its best-lit spot (64% sunlight) slopes only 2.9°.
+
+Limit: an 80 m map smooths small bumps, so the real slope under a lander’s feet can be steeper. This is a first screening; certifying a spot needs 5 m maps. Where the tool has no terrain map, there is no slope value and the rule is not checked.
+
+Reference for the 5° limit: arXiv:2406.19863, https://arxiv.org/abs/2406.19863
 
 **Benefits and goals:** make site-and-date trade-offs for lunar landings fast, honest and understandable, so a planner can re-check a slipped launch in seconds and a teacher can show why the lunar pole is so hard.
 
