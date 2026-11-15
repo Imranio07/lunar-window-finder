@@ -46,6 +46,18 @@ At the lunar south pole the Sun never rises more than about 1.5° above the flat
 4. **Against a real mission.** For Blue Ghost Mission 1 (landed 2 March 2025) the tool gives 348 hours from touchdown to sunset; Firefly Aerospace reported 346 hours of daylight operations. Without being told, the tool also finds the eclipse of 14 March 2025 at the landing site (Earth covers the Sun between 05:00 and 09:50 UTC), which the lander filmed from the surface.
 5. **Sanity checks of the horizon code:** flat ground gives the expected −0.087° horizon for a 2 m panel; mountains placed north or east appear at azimuth 0° or 90°.
 
+## Experiment: can machine learning replace the calculation?
+
+The verdicts are geometry, not machine learning. We tested openly whether a model could do the same job. A gradient-boosting model (scikit-learn, 400 trees) learned “share of 2027–2028 with the Sun in view” from the 3,529 points of our Artemis III region scans. Honest test: train on eight regions, test on the ninth, which the model has never seen; training points closer than 5 km to the test region are removed (a random split would leak the answer, because neighbouring points are alike).
+
+| Predictor | Error in an unseen region (percentage points of sunlight) |
+|---|---|
+| Guess the average of the other regions | 11.6 |
+| Model that sees only the shape of the ground (height, height above the surroundings, slope; 13 inputs) | 13.4 |
+| Model that sees 8 coarse horizon rays instead of 720 (18 inputs) | **2.9** (R² 0.92) |
+
+The 8-ray model orders the points of an unseen region almost correctly (rank correlation 0.95) and its 10 highest guesses contain the best-lit point in 9 of 9 regions. What it shows: at the lunar pole sunlight is decided by the horizon line, not by the local shape of the ground. The model is a measured baseline and a possible fast pre-screen; it imitates our calculation and was not checked against NASA’s map, so every verdict still comes from the full calculation. Script: `pipeline/ml_prescreen.py`.
+
 ## How it works
 
 | Step | Script | What it does |
@@ -56,6 +68,7 @@ At the lunar south pole the Sun never rises more than about 1.5° above the flat
 | 3 | `pipeline/visibility.py` | Share of the Sun’s and Earth’s disk above the local horizon at every time step, eclipses, scores, ranges and the checks. |
 | 4 | `pipeline/export_web.py` + `docs/index.html` | Packs the results; one static page draws everything in the browser (no server, no external libraries). |
 | 2c | `pipeline/slope.py` | Ground slope from the LOLA 80 m map (central differences over 160 m) at every site and every region scan point. |
+| 6 | `pipeline/ml_prescreen.py` | The machine-learning experiment above (scikit-learn); not used for the verdicts. |
 | 5 | `pipeline/export_terrain.py` | Shrinks the LOLA map to 240 m and packs it into a PNG, so the page can compute the horizon of any clicked point in the browser. |
 
 **Formula of the horizon:** for terrain height *h* at distance *d* from a site at height *h₀* (ground + panel), the angle is `atan((h − h₀ − d²/2R) / d)` with *R* = 1737.4 km, and the horizon in each direction is the largest such angle.
@@ -84,8 +97,9 @@ python3 pipeline/slope.py
 python3 pipeline/fetch_horizons.py      # best-lit spots
 python3 pipeline/horizon.py
 python3 pipeline/visibility.py
-python3 pipeline/export_web.py
 python3 pipeline/export_terrain.py
+python3 pipeline/ml_prescreen.py     # optional: the machine-learning experiment
+python3 pipeline/export_web.py
 cd docs && python3 -m http.server 8000
 ```
 

@@ -78,9 +78,19 @@ Limit: an 80 m map smooths small bumps, so the real slope under a lander’s fee
 
 Reference for the 5° limit: arXiv:2406.19863, https://arxiv.org/abs/2406.19863
 
+**Experiment: can machine learning replace the calculation? (added on day 2)**
+
+The verdicts of the tool are geometry, not machine learning. We tested openly whether a model could do the same job. A gradient-boosting model (scikit-learn, 400 trees) learned “share of 2027–2028 with the Sun in view” from the 3,529 points of our Artemis III region scans. Honest test: train on eight regions, test on the ninth, which the model has never seen; training points closer than 5 km to the test region are removed.
+
+- Guessing the average of the other regions: error 11.6 percentage points.
+- Model that sees only the shape of the ground (height, height above the surroundings, slope; 13 inputs): 13.4. No better than guessing.
+- Model that sees 8 coarse horizon rays instead of 720 (18 inputs): 2.9, R² 0.92. It orders the points of an unseen region almost correctly (rank correlation 0.95), and its 10 highest guesses contain the best-lit point in 9 of 9 regions.
+
+What it shows: at the lunar pole sunlight is decided by the horizon line, not by the local shape of the ground. The model is a measured baseline and a possible fast pre-screen (8 rays instead of 720). It imitates our calculation and was not checked against NASA’s map, so every verdict still comes from the full calculation. Script: pipeline/ml_prescreen.py.
+
 **Benefits and goals:** make site-and-date trade-offs for lunar landings fast, honest and understandable, so a planner can re-check a slipped launch in seconds and a teacher can show why the lunar pole is so hard.
 
-**Tools:** Python (NumPy, Rasterio, Requests), JavaScript, HTML and CSS, Git, GitHub Pages. The page runs in any browser with no install and no server.
+**Tools:** Python (NumPy, Rasterio, Requests, scikit-learn, SciPy, Pillow), JavaScript, HTML and CSS, Git, GitHub Pages. The page runs in any browser with no install and no server.
 
 ## Use of Super Intelligence (SI)
 

@@ -151,6 +151,10 @@ def main():
     if validation_file.exists():
         index["validation"] = json.loads(validation_file.read_text(encoding="utf-8"))
 
+    ml_file = RESULTS_DIR / "ml.json"                            # written by ml_prescreen.py (optional)
+    if ml_file.exists():
+        index["ml"] = json.loads(ml_file.read_text(encoding="utf-8"))
+
     (WEB_DATA / "index.json").write_text(json.dumps(index), encoding="utf-8")
     size = (WEB_DATA / "index.json").stat().st_size / 1e6
     print(f"Exported {len(index['sites'])} sites to {WEB_DATA} (index.json {size:.1f} MB)")

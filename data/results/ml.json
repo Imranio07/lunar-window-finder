@@ -1,0 +1,157 @@
+{
+ "target": "share of 2027-2028 with the Sun in view, 2 m panel, from our region scans",
+ "points": 3529,
+ "regions": 9,
+ "buffer_km": 5.0,
+ "n_rays": 8,
+ "model": "gradient boosting, 400 trees of depth 3 (scikit-learn 1.9.1)",
+ "average_mae": 11.62,
+ "shape": {
+  "inputs": 13,
+  "mae": 13.4,
+  "r2": -0.42,
+  "rank": 0.51,
+  "top10_hits": 6,
+  "per_region": [
+   {
+    "name": "de Gerlache Rim 2",
+    "points": 400,
+    "mae": 24.39,
+    "rank": 0.66,
+    "top10_miss": 0.0
+   },
+   {
+    "name": "Haworth",
+    "points": 400,
+    "mae": 10.58,
+    "rank": 0.46,
+    "top10_miss": 2.1
+   },
+   {
+    "name": "Malapert Massif",
+    "points": 441,
+    "mae": 11.1,
+    "rank": 0.38,
+    "top10_miss": 0.0
+   },
+   {
+    "name": "Mons Mouton",
+    "points": 256,
+    "mae": 12.46,
+    "rank": 0.61,
+    "top10_miss": 0.0
+   },
+   {
+    "name": "Mons Mouton Plateau",
+    "points": 432,
+    "mae": 13.8,
+    "rank": 0.51,
+    "top10_miss": 1.7
+   },
+   {
+    "name": "Nobile Rim 1",
+    "points": 400,
+    "mae": 10.72,
+    "rank": 0.4,
+    "top10_miss": 0.0
+   },
+   {
+    "name": "Nobile Rim 2",
+    "points": 400,
+    "mae": 11.1,
+    "rank": 0.41,
+    "top10_miss": 0.1
+   },
+   {
+    "name": "Peak near Cabeus B",
+    "points": 400,
+    "mae": 15.18,
+    "rank": 0.57,
+    "top10_miss": 0.0
+   },
+   {
+    "name": "Slater Plain",
+    "points": 400,
+    "mae": 11.11,
+    "rank": 0.58,
+    "top10_miss": 0.0
+   }
+  ],
+  "average_mae": 11.62,
+  "train_points": 3067
+ },
+ "rays": {
+  "inputs": 18,
+  "mae": 2.93,
+  "r2": 0.92,
+  "rank": 0.95,
+  "top10_hits": 9,
+  "per_region": [
+   {
+    "name": "de Gerlache Rim 2",
+    "points": 400,
+    "mae": 3.03,
+    "rank": 0.92,
+    "top10_miss": 0.0
+   },
+   {
+    "name": "Haworth",
+    "points": 400,
+    "mae": 2.53,
+    "rank": 0.97,
+    "top10_miss": 0.0
+   },
+   {
+    "name": "Malapert Massif",
+    "points": 441,
+    "mae": 2.64,
+    "rank": 0.95,
+    "top10_miss": 0.0
+   },
+   {
+    "name": "Mons Mouton",
+    "points": 256,
+    "mae": 2.69,
+    "rank": 0.97,
+    "top10_miss": 0.0
+   },
+   {
+    "name": "Mons Mouton Plateau",
+    "points": 432,
+    "mae": 2.64,
+    "rank": 0.94,
+    "top10_miss": 0.0
+   },
+   {
+    "name": "Nobile Rim 1",
+    "points": 400,
+    "mae": 3.22,
+    "rank": 0.97,
+    "top10_miss": 0.0
+   },
+   {
+    "name": "Nobile Rim 2",
+    "points": 400,
+    "mae": 3.12,
+    "rank": 0.95,
+    "top10_miss": 0.0
+   },
+   {
+    "name": "Peak near Cabeus B",
+    "points": 400,
+    "mae": 3.13,
+    "rank": 0.96,
+    "top10_miss": 0.0
+   },
+   {
+    "name": "Slater Plain",
+    "points": 400,
+    "mae": 3.34,
+    "rank": 0.96,
+    "top10_miss": 0.0
+   }
+  ],
+  "average_mae": 11.62,
+  "train_points": 3067
+ }
+}

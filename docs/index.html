@@ -64,6 +64,12 @@
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   canvas { width: 100%; display: block; }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .mlrow { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 76px; gap: 12px; align-items: center; margin: 9px 0; font-size: 14px; }
+  .mlbar { height: 12px; background: var(--line); border-radius: 6px; overflow: hidden; }
+  .mlbar i { display: block; height: 100%; border-radius: 6px; }
+  .mlrow b { text-align: right; white-space: nowrap; }
+  #mlBody p { margin: 10px 0 0; font-size: 14px; line-height: 1.5; }
+  @media (max-width: 700px) { .mlrow { grid-template-columns: minmax(0, 1fr) 76px; } .mlrow span { grid-column: 1 / -1; } }
   .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
   .tip { position: fixed; pointer-events: none; background: var(--navy); color: #fff; font-size: 13px; padding: 6px 9px; border-radius: 6px; display: none; z-index: 10; max-width: 280px; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -208,6 +214,12 @@
     <h2>Real missions: what our tool says about their landings</h2>
     <p class="sub">Computed for the actual landing moment of each mission. Click a row to open it.</p>
     <div class="scroll"><table id="missions"></table></div>
+  </section>
+
+  <section class="card" id="mlCard" style="display:none">
+    <h2>Experiment: can machine learning replace the calculation?</h2>
+    <p class="sub" id="mlSub"></p>
+    <div id="mlBody"></div>
   </section>
 
   <section class="card">
@@ -845,6 +857,25 @@ function missionsTable() {
         <td class="n">${s.slope_deg === null || s.slope_deg === undefined ? "–" : fmt(s.slope_deg, 1) + "° (80 m map)"}</td>
         <td>${s.horizon_source.replace(", no terrain", "")}</td></tr>`; }).join("");
 }
+function drawML() {
+  const m = S.index.ml, card = $("mlCard");
+  if (!m || !m.rays || !m.shape) { card.style.display = "none"; return; }
+  card.style.display = "";
+  const st = S.index.validation && S.index.validation.nasa_sun && S.index.validation.nasa_sun.stats;
+  $("mlSub").textContent = `We trained a model (${m.model}) on the ${m.points.toLocaleString("en-US")} points of our Artemis III region scans and tested it the hard way: on a region it had never seen, with training points closer than ${m.buffer_km} km to that region removed. The verdicts on this page do not use it.`;
+  const rows = [
+    ["Guess the average of the other regions (no model)", m.average_mae, "var(--dim)"],
+    [`Model that sees only the shape of the ground: height, height above the surroundings, slope (${m.shape.inputs} inputs)`, m.shape.mae, "var(--nogo)"],
+    [`Model that sees ${m.n_rays} coarse horizon rays instead of 720 (${m.rays.inputs} inputs)`, m.rays.mae, "var(--go)"]];
+  const max = Math.max(...rows.map(r => r[1]));
+  const shapeText = m.shape.mae >= 0.9 * m.average_mae ? "that model is no better than guessing the average"
+    : `that model is only a little better than guessing the average (${fmt(m.shape.mae, 1)} against ${fmt(m.average_mae, 1)} points)`;
+  $("mlBody").innerHTML = rows.map(([label, v, c]) =>
+    `<div class="mlrow"><span>${label}</span><div class="mlbar"><i style="width:${(100 * v / max).toFixed(1)}%;background:${c}"></i></div><b>${fmt(v, 1)} pp</b></div>`).join("") +
+    `<p style="color:var(--muted)">Error: average difference from our full calculation in an unseen region, in percentage points of sunlight (share of 2027–2028 with the Sun in view, 2 m panel). Shorter bar is better.</p>
+    <p><b>What it shows.</b> The shape of the ground alone does not predict sunlight at the pole: ${shapeText}. The horizon does: with only ${m.n_rays} rays the model comes within ${fmt(m.rays.mae, 1)} points of the full calculation (R² ${m.rays.r2}), puts the points of an unseen region in almost the right order (rank match ${m.rays.rank} out of 1), and its 10 highest guesses contain the best-lit point in ${m.rays.top10_hits} of ${m.regions} regions.</p>
+    <p><b>How we use it.</b> Only as a measured baseline and a possible fast pre-screen. Every verdict on this page comes from the full calculation with 720 rays${st ? `, which matches NASA’s illumination map within ${st.mean_abs_diff} points` : ""}. The model imitates our calculation; it was not checked against NASA’s map itself.</p>`;
+}
 function checks() {
   const v = S.index.validation;
   const pts = v && v.nasa_sun ? v.nasa_sun.points.filter(p => p.nasa !== null) : [];
@@ -995,7 +1026,7 @@ function bind() {
     `${S.index.sites.length} sites · every hour of 2027–2028`,
   ].filter(Boolean).map(b => `<span class="badge">${b}</span>`).join("");
   if (!readHash()) { S.siteId = (S.index.sites.find(s => s.spot === "best") || S.index.sites[0]).id; S.landing = parseUTC(S.index.plan.start); }
-  bind(); syncControls(); missionsTable(); checks(); methodsText();
+  bind(); syncControls(); missionsTable(); checks(); drawML(); methodsText();
   await render();
   loadTerrain();
 })();
