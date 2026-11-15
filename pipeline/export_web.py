@@ -30,6 +30,7 @@ from visibility import (EARTH_RADIUS, MASTS, RESULTS_DIR, SITES_FILE, SUN_RADIUS
 ROOT = Path(__file__).resolve().parents[1]
 WEB_DATA = ROOT / "docs" / "data"          # GitHub Pages serves the docs/ folder
 REGIONS_DIR = ROOT / "data" / "regions"
+SLOPES_FILE = TERRAIN_DIR / "slopes.json"                   # written by slope.py
 
 
 def pack(values, dtype):
@@ -74,6 +75,9 @@ def main():
              "sun_radius": SUN_RADIUS, "earth_radius": EARTH_RADIUS, "masts": list(MASTS),
              "plan": None, "sites": []}
 
+    slopes = json.loads(SLOPES_FILE.read_text(encoding="utf-8")) if SLOPES_FILE.exists() else {}
+    index["slope_source"] = "NASA LOLA 80 m map, 160 m baseline" if slopes else None
+
     for site in config["sites"]:
         if site.get("group") == "validation":
             continue
@@ -89,6 +93,7 @@ def main():
         entry["region"] = site.get("region")
         entry["spot"] = site.get("spot")
         entry["horizon_source"] = results.get("horizon_source")
+        entry["slope_deg"] = slopes.get(site["id"])
         terrain_file = TERRAIN_DIR / f"{site['id']}.json"
         if terrain_file.exists():
             terrain = json.loads(terrain_file.read_text(encoding="utf-8"))

@@ -44,7 +44,7 @@
   .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
   .seg button { flex: 1; font: inherit; border: 0; background: var(--card); padding: 7px 0; cursor: pointer; color: var(--ink); }
   .seg button.on { background: var(--navy2); color: #fff; }
-  .rule-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .rule-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1.2fr; gap: 12px; margin-top: 12px; }
   .modebar { margin-top: 10px; font-size: 14px; color: var(--muted); min-height: 22px; }
   .modebar button, .region button { font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 3px 12px; cursor: pointer; margin: 0 6px 6px 0; }
   .modebar button { margin-left: 6px; }
@@ -55,12 +55,12 @@
   .pill.go { background: var(--go-soft); color: var(--go); } .pill.nogo { background: var(--nogo-soft); color: var(--nogo); } .pill.info { background: var(--info-bg); color: var(--info-ink); }
   .verdict p { margin: 0; font-size: 17px; }
   .verdict .hint { margin-top: 6px; font-size: 14px; color: var(--muted); }
-  .tiles { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 16px; }
+  .tiles { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 16px; }
   .tile { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
   .tile .k { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
   .tile .v { font-size: 26px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
   .tile .r { font-size: 12px; color: var(--muted); }
-  .tile.sun { border-top: 4px solid var(--sun); } .tile.earth { border-top: 4px solid var(--earth); }
+  .tile.sun { border-top: 4px solid var(--sun); } .tile.earth { border-top: 4px solid var(--earth); } .tile.ground { border-top: 4px solid var(--terrain); }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   canvas { width: 100%; display: block; }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-top: 8px; }
@@ -78,7 +78,7 @@
   footer a { color: var(--sun); }
   @media (max-width: 1000px) {
     .controls { grid-template-columns: 1fr 1fr; } .rule-row { grid-template-columns: 1fr 1fr; }
-    .tiles { grid-template-columns: repeat(3, 1fr); } .two, .region { grid-template-columns: 1fr; }
+    .tiles { grid-template-columns: repeat(4, 1fr); } .two, .region { grid-template-columns: 1fr; }
   }
   @media (max-width: 560px) {
     .controls, .rule-row { grid-template-columns: 1fr; } .tiles { grid-template-columns: repeat(2, 1fr); }
@@ -117,6 +117,8 @@
       <div class="note" id="ruleText"></div>
       <div><label for="maxDark">Max darkness (h)</label><input id="maxDark" type="number" min="0" placeholder="no limit"></div>
       <div><label for="maxBlack">Max Earth blackout (h)</label><input id="maxBlack" type="number" min="0" placeholder="no limit"></div>
+      <div><label for="maxSlope">Max ground slope</label>
+        <select id="maxSlope"><option value="">No limit</option><option value="5">5° (NASA crew lander)</option><option value="10">10°</option><option value="15">15°</option></select></div>
     </div>
     <div class="modebar" id="modebar"></div>
   </section>
@@ -146,9 +148,13 @@
 
   <section class="card" id="regionCard" style="display:none">
     <h2 id="regionTitle">Sunlight map of the region</h2>
-    <p class="sub">Every square is one point of our scan: average share of 2027–2028 with the Sun in view. Brighter is better. Hover for numbers.</p>
+    <p class="sub" id="regionSub">Every square is one point of our scan: average share of 2027–2028 with the Sun in view. Brighter is better. Hover for numbers.</p>
     <div class="region">
-      <canvas id="regionMap" height="360"></canvas>
+      <div>
+        <div class="seg" id="regionMode" style="max-width:340px;margin-bottom:10px;display:none"><button data-v="sun" class="on">Sunlight</button><button data-v="slope">Ground slope</button></div>
+        <canvas id="regionMap" height="360"></canvas>
+        <div class="legend" id="regionLegend"></div>
+      </div>
       <div id="regionText"></div>
     </div>
   </section>
@@ -269,7 +275,8 @@ function diskShare(el, horizon, radius) {           // share of a round disk's a
 }
 
 // ---------- state ----------
-const S = { index: null, sites: {}, sky: {}, siteId: null, mode: "plan", landing: null, days: 14, mast: "2", dark: 50, black: null, rule: "viper" };
+const S = { index: null, sites: {}, sky: {}, siteId: null, mode: "plan", landing: null, days: 14, mast: "2", dark: 50, black: null, rule: "viper", slope: null, regionMode: "sun" };
+const HLS_SLOPE = 5;          // deg: slope limit for NASA's crew lander used in Artemis III site studies (arXiv:2406.19863)
 
 async function loadSky(id) {
   if (S.sky[id]) return S.sky[id];
@@ -358,6 +365,7 @@ async function makeCustom(lat, lon, refId) {
     horizon_source: t ? "LOLA terrain, 240 m quick look" : "smooth Moon",
     source: t ? `your own point (quick look), ground ${fmt(t.ground)} m; terrain from the 240 m LOLA map${t.offMap > 0.01 ? `; ${fmt(100 * t.offMap)}% of the rays leave the 80° S edge of the map before 150 km` : ""}; Sun and Earth turned from ${ref.name}`
               : `your own point on a smooth Moon (no terrain here); Sun and Earth turned from ${ref.name}`,
+    slope_deg: t ? terrainSlope(lat, lon) : null, slope_src: "240 m map, quick look",
     shares: {}, _sh: {} };
   S.sky.custom = { plan: { start: b.start, stepMin: b.stepMin, n: b.n, sunAz: sun.az, sunEl: sun.el, earthAz: earth.az, earthEl: earth.el } };
   for (const mast of ["2", "10"]) {
@@ -438,6 +446,12 @@ function drawPolar() {
     else { g.fillStyle = css("--earth"); g.beginPath(); g.arc(X(x), Y(y), sel ? 5 : 3.5, 0, 7); g.fill(); }
   }
 }
+function terrainSlope(lat, lon) {                     // slope from the 240 m map: central differences along local east and north
+  const m = T.meta, [x, y] = toMap(lat, lon), l = lon * RAD, d = m.pixel_m;
+  const nx = Math.sin(l), ny = Math.cos(l), ex = Math.cos(l), ey = -Math.sin(l);
+  const de = terrainAt(x + ex * d, y + ey * d) - terrainAt(x - ex * d, y - ey * d), dn = terrainAt(x + nx * d, y + ny * d) - terrainAt(x - nx * d, y - ny * d);
+  return Number.isFinite(de) && Number.isFinite(dn) ? Math.round(Math.atan(Math.hypot(de, dn) / (2 * d)) / RAD * 100) / 100 : null;
+}
 function polarPoint(ev) {
   if (!polarView) return null;
   const r = $("polar").getBoundingClientRect(), v = polarView, m = T.meta, x = m.left + (ev.clientX - r.left) / v.size * v.span, y = m.top - (ev.clientY - r.top) / v.size * v.span;
@@ -478,6 +492,9 @@ function nextChange(block, site, i0, body) {          // hours until the body se
   return { visible: now, hours: Infinity };
 }
 function passes(st) { return (S.dark === null || st.dark <= S.dark) && (S.black === null || st.black <= S.black); }
+function slopeOK(site) { return S.slope === null || site.slope_deg === null || site.slope_deg === undefined || site.slope_deg <= S.slope; }
+const hasAnyRule = () => S.dark !== null || S.black !== null || S.slope !== null;
+const slopeColor = v => v === null || v === undefined ? "#9aa4b2" : v <= 5 ? "#1f8a4c" : v <= 10 ? "#d4a017" : v <= 15 ? "#e0702a" : "#c0392b";
 
 // ---------- calendar maths (hourly shares, planning window) ----------
 function dayStats(site, startHour, hours) {
@@ -519,7 +536,7 @@ async function render() {
   const cut = i1 - landingIdx < len;
 
   // verdict
-  const ok = passes(mid), hasRule = S.dark !== null || S.black !== null;
+  const ok = passes(mid) && slopeOK(site), hasRule = hasAnyRule(), steep = !slopeOK(site);
   const where = `${site.name}, landing ${dayText(S.landing)} ${isoUTC(S.landing).slice(11)} UTC, ${S.days}-day mission, ${S.mast} m ${S.mast === "2" ? "deck" : "mast"}`;
   let main = `The Sun is in view ${fmt(mid.sun)}% of the time and the longest darkness is ${hoursText(mid.dark)}`;
   main += S.dark !== null ? ` (limit ${S.dark} h). ` : ". ";
@@ -527,7 +544,10 @@ async function render() {
         : `Earth is in view ${fmt(mid.earth)}% of the time; the longest blackout is ${hoursText(mid.black)}${S.black !== null ? ` (limit ${S.black} h)` : ""}.`;
   let hint = `${where}.`;
   if (sunUp < -S.index.sun_radius) hint += ` At touchdown the Sun is ${fmt(-sunUp, 1)}° below the local horizon.`;
-  if (hasRule && !ok && S.mode === "plan") {
+  if (site.slope_deg !== null && site.slope_deg !== undefined)
+    hint += ` Ground slope here: ${fmt(site.slope_deg, 1)}° (${site.slope_src || "80 m map"}${site.slope_deg <= HLS_SLOPE ? ", under" : ", over"} the ${HLS_SLOPE}° crew-lander limit).`;
+  if (steep) hint += ` <b>The ground is steeper than your ${S.slope}° limit: no landing date fixes that, pick another spot.</b>`;
+  if (hasRule && !ok && !steep && S.mode === "plan") {
     const g = nearestGoodDay(site, S.landing);
     hint += g ? ` If the date can move: the nearest landing day that meets the rule is ${dayText(g.ms)} (${g.shift > 0 ? "+" : ""}${g.shift} days, longest darkness ${hoursText(g.st.dark)}).`
               : " No landing day within ±120 days meets this rule at this site.";
@@ -546,6 +566,9 @@ async function render() {
     ["sun", "Longest darkness", hoursText(mid.dark), `range ${r("dark")}`],
     ["earth", "Earth line of sight", `${fmt(mid.earth)}%`, earthUp > -S.index.earth_radius ? `in view at touchdown, ${earthNext.hours === Infinity ? "stays up" : "sets in " + hoursText(earthNext.hours)}` : "hidden at touchdown"],
     ["earth", "Longest blackout", hoursText(mid.black), `range ${r("black")}`],
+    ["ground", "Ground slope", site.slope_deg === null || site.slope_deg === undefined ? "–" : `${fmt(site.slope_deg, 1)}°`,
+      site.slope_deg === null || site.slope_deg === undefined ? "no terrain map at this site"
+        : `<span style="color:${slopeColor(site.slope_deg)};font-weight:600">${site.slope_deg <= HLS_SLOPE ? "under" : "over"} the ${HLS_SLOPE}° crew-lander limit</span> · ${site.slope_src || "80 m map"}`],
   ];
   $("tiles").innerHTML = tiles.map(([c, k, v, s]) => `<div class="tile ${c}"><div class="k">${k}</div><div class="v">${v}</div><div class="r">${s}</div></div>`).join("");
 
@@ -675,7 +698,9 @@ function drawRegion(site) {
   regionView = null;
   if (!reg) return;
   const col = Object.fromEntries(reg.columns.map((c, i) => [c, i]));
-  const sunI = col[`sun_${S.mast}m`], darkI = col[`dark_h_${S.mast}m`], earthI = col[`earth_${S.mast}m`];
+  const sunI = col[`sun_${S.mast}m`], darkI = col[`dark_h_${S.mast}m`], earthI = col[`earth_${S.mast}m`], slI = col.slope_deg;
+  const hasSlope = slI !== undefined, slopeMode = hasSlope && S.regionMode === "slope", limit = S.slope ?? HLS_SLOPE;
+  $("regionMode").style.display = hasSlope ? "flex" : "none";
   const { g, w, h } = setupCanvas($("regionMap"));
   let ext = 1;
   reg.outline_km.forEach(r => r.forEach(([x, y]) => { ext = Math.max(ext, Math.abs(x), Math.abs(y)); }));
@@ -683,7 +708,16 @@ function drawRegion(site) {
   const size = Math.min(w, h) - 4, ox = (w - size) / 2, oy = (h - size) / 2;
   const X = x => ox + (x + ext) / (2 * ext) * size, Y = y => oy + (ext - y) / (2 * ext) * size;
   const cell = reg.spacing_m / 1000 / (2 * ext) * size;
-  reg.points.forEach(p => { g.fillStyle = `rgba(${css("--heat")},${0.05 + 0.95 * p[sunI] / 100})`; g.fillRect(X(p[0]) - cell / 2, Y(p[1]) - cell / 2, cell + 0.6, cell + 0.6); });
+  reg.points.forEach(p => {
+    g.fillStyle = slopeMode ? slopeColor(p[slI]) : `rgba(${css("--heat")},${0.05 + 0.95 * p[sunI] / 100})`;
+    g.fillRect(X(p[0]) - cell / 2, Y(p[1]) - cell / 2, cell + 0.6, cell + 0.6);
+    if (!slopeMode && hasSlope && S.slope !== null && p[slI] !== null && p[slI] > S.slope) {   // too steep: cross it out
+      g.strokeStyle = "rgba(192,57,43,.85)"; g.lineWidth = 1.2; g.beginPath();
+      g.moveTo(X(p[0]) - cell / 2 + 1, Y(p[1]) + cell / 2 - 1); g.lineTo(X(p[0]) + cell / 2 - 1, Y(p[1]) - cell / 2 + 1); g.stroke(); }
+  });
+  $("regionLegend").innerHTML = slopeMode
+    ? `<span><i style="background:#1f8a4c"></i>≤ 5°</span><span><i style="background:#d4a017"></i>5–10°</span><span><i style="background:#e0702a"></i>10–15°</span><span><i style="background:#c0392b"></i>> 15°</span><span>slope from the NASA LOLA 80 m map</span>`
+    : hasSlope && S.slope !== null ? `<span>Crossed-out squares: ground steeper than ${S.slope}°.</span>` : "";
   g.strokeStyle = css("--muted"); g.lineWidth = 1.5;
   reg.outline_km.forEach(r => { g.beginPath(); r.forEach(([x, y], k) => k ? g.lineTo(X(x), Y(y)) : g.moveTo(X(x), Y(y))); g.closePath(); g.stroke(); });
   // best point for the chosen panel height
@@ -693,6 +727,11 @@ function drawRegion(site) {
   const mark = (x, y, label, strong) => { g.lineWidth = strong ? 3 : 2; g.strokeStyle = css("--ink"); g.beginPath(); g.arc(X(x), Y(y), strong ? 8 : 6, 0, 7); g.stroke();
     g.font = "bold 12px -apple-system, Segoe UI, Roboto, Arial, sans-serif"; axisText(g, label, X(x) + 11, Y(y) + 4, "left", css("--ink")); };
   mark(0, 0, "centre", site.spot !== "best"); mark(scanned.x_km, scanned.y_km, "best-lit", site.spot === "best");
+  let safe = null;                                         // best-lit point among those with a gentle enough slope
+  if (hasSlope) reg.points.forEach(p => { if (p[slI] !== null && p[slI] <= limit && (!safe || p[sunI] > safe[sunI])) safe = p; });
+  if (safe && Math.hypot(safe[0] - scanned.x_km, safe[1] - scanned.y_km) > 0.01) {
+    g.lineWidth = 2.5; g.strokeStyle = css("--go"); g.beginPath(); g.arc(X(safe[0]), Y(safe[1]), 7, 0, 7); g.stroke();
+    g.font = "bold 12px -apple-system, Segoe UI, Roboto, Arial, sans-serif"; axisText(g, `safe < ${limit}°`, X(safe[0]) + 11, Y(safe[1]) + 4, "left", css("--go")); }
   // arrow to the pole and scale bar
   const ax = ox + 26, ay = oy + size - 26, [px, py] = reg.to_pole;
   g.strokeStyle = css("--muted"); g.fillStyle = css("--muted"); g.lineWidth = 2; g.beginPath(); g.moveTo(ax - px * 14, ay + py * 14); g.lineTo(ax + px * 14, ay - py * 14); g.stroke();
@@ -700,7 +739,7 @@ function drawRegion(site) {
   g.font = "12px -apple-system, Segoe UI, Roboto, Arial, sans-serif"; axisText(g, "● to the pole", ax + 22, ay + 4, "left");
   const bar = 5 / (2 * ext) * size; g.beginPath(); g.moveTo(ox + size - 16 - bar, oy + size - 14); g.lineTo(ox + size - 16, oy + size - 14); g.stroke();
   axisText(g, "5 km", ox + size - 16 - bar / 2, oy + size - 20);
-  regionView = { reg, X, Y, cell, sunI, darkI, earthI };
+  regionView = { reg, X, Y, cell, sunI, darkI, earthI, slI };
 
   const suns = reg.points.map(p => p[sunI]), lo = Math.min(...suns), hi = Math.max(...suns);
   // headline numbers come from the full calculation of the two sites (0.5° rays, own Horizons data) when available
@@ -709,13 +748,22 @@ function drawRegion(site) {
   const cs = full(reg.site_id, "sun_pct", c[`sun_${S.mast}m`]), cd = full(reg.site_id, "longest_dark_h", c[`dark_h_${S.mast}m`]);
   const bs = full(bestId, "sun_pct", b[`sun_${S.mast}m`]), bd = full(bestId, "longest_dark_h", b[`dark_h_${S.mast}m`]), be = full(bestId, "earth_any_pct", b[`earth_${S.mast}m`]);
   const dist = Math.hypot(b.x_km, b.y_km), good = suns.filter(v => v >= 0.8 * hi).length;
-  $("regionTitle").textContent = `Sunlight map of ${reg.name}: where exactly you land decides everything`;
+  $("regionTitle").textContent = slopeMode ? `Ground slope map of ${reg.name}: can a lander stand here?` : `Sunlight map of ${reg.name}: where exactly you land decides everything`;
+  $("regionSub").textContent = slopeMode ? "Every square is one point of our scan, coloured by ground slope (NASA LOLA 80 m map). Green is gentle enough for NASA’s crew lander. Hover for numbers."
+    : "Every square is one point of our scan: average share of 2027–2028 with the Sun in view. Brighter is better. Hover for numbers.";
   $("regionText").innerHTML = `
     <p>Inside this one region the Sun is in view from <b>${fmt(lo)}%</b> to <b>${fmt(hi)}%</b> of 2027–2028, depending on the spot
        (${reg.points.length} points, ${reg.spacing_m / 1000} km grid, ${S.mast} m panel).</p>
     <p><b>Centre of the region:</b> ${fmt(cs)}% sunlight, longest darkness ${hoursText(cd)}.<br>
        <b>Best-lit spot, ${fmt(dist, 1)} km from the centre:</b> ${fmt(bs)}% sunlight, longest darkness ${hoursText(bd)}, Earth in view ${fmt(be)}% of the time.</p>
     <p>Only ${good} of ${reg.points.length} grid points come within 80% of the best one. A landing error of a couple of kilometres can turn a good site into a dark one.</p>
+    ${hasSlope ? (() => {
+      const at = (x, y) => reg.points.reduce((a, p) => Math.hypot(p[0] - x, p[1] - y) < Math.hypot(a[0] - x, a[1] - y) ? p : a);
+      const bestSlope = (S.sites[bestId] && S.sites[bestId].slope_deg) ?? at(b.x_km, b.y_km)[slI];
+      const nSafe = reg.points.filter(p => p[slI] !== null && p[slI] <= limit).length;
+      return `<p><b>Landing safety (ground slope, 80 m map):</b> the best-lit spot slopes ${fmt(bestSlope, 1)}°; ${nSafe} of ${reg.points.length} points are under ${limit}°.
+        ${safe ? `The best-lit point with a slope under ${limit}° gets ${fmt(safe[sunI])}% sunlight, ${fmt(Math.hypot(safe[0], safe[1]), 1)} km from the centre (scan value, marked “safe”).` : `No scanned point here is under ${limit}°.`}</p>`;
+    })() : ""}
     <p>${S.sites[reg.site_id + "_best"] ? `<button data-open="${reg.site_id}_best">Open the best-lit spot</button>` : ""}<button data-open="${reg.site_id}">Open the region centre</button></p>
     <p class="note">You are looking at: <b>${site.spot === "best" ? "the best-lit spot" : "the region centre"}</b>. The map is a quick scan (rays every 1°); the best spot is picked with the 2 m panel, and the numbers above come from the full calculation of the two marked sites. Grid squares next to the centre can differ a lot from it: that is the point of this map.</p>`;
 }
@@ -731,14 +779,14 @@ function drawCalendar() {
   const { g, w, h } = setupCanvas(cv);
   const L = 172, T = 20, cw = (w - L - 6) / nDays, ch = 18;
   calCells = { L, T, cw, ch, rows, start, nDays };
-  const hasRule = S.dark !== null || S.black !== null;
+  const hasRule = hasAnyRule();
   rows.forEach((s, r) => {
-    const y = T + r * ch;
-    axisText(g, shortName(s), L - 8, y + 13, "right", s.id === S.siteId ? css("--ink") : css("--muted"));
+    const y = T + r * ch, steepRow = !slopeOK(s);
+    axisText(g, shortName(s) + (steepRow ? " ▲" : ""), L - 8, y + 13, "right", steepRow ? css("--nogo") : s.id === S.siteId ? css("--ink") : css("--muted"));
     for (let d = 0; d < nDays; d++) {
       const st = dayStats(s, d * 24, S.days * 24);
       let color;
-      if (hasRule) color = passes(st) ? `rgba(31,138,76,${0.35 + 0.65 * st.sun / 100})` : `rgba(192,57,43,${0.18 + 0.25 * Math.min(1, st.dark / 300)})`;
+      if (hasRule) color = passes(st) && !steepRow ? `rgba(31,138,76,${0.35 + 0.65 * st.sun / 100})` : `rgba(192,57,43,${0.18 + 0.25 * Math.min(1, st.dark / 300)})`;
       else color = `rgba(${css("--heat")},${0.08 + 0.92 * st.sun / 100})`;
       g.fillStyle = color; g.fillRect(L + d * cw, y + 1, Math.ceil(cw), ch - 2);
     }
@@ -753,23 +801,24 @@ function drawCalendar() {
   if (S.mode === "plan" && sel >= 0 && sel < nDays) { g.strokeStyle = css("--ink"); g.lineWidth = 2; g.strokeRect(L + sel * cw - 1, T - 3, cw + 2, rows.length * ch + 6); }
   $("calSub").textContent = `Each cell is one landing day (00:00 UTC) for a ${S.days}-day mission with the ${S.mast} m ${S.mast === "2" ? "deck" : "mast"}. Artemis III regions (★) are shown at their best-lit spot. Click a cell to open it.`;
   $("calLegend").innerHTML = hasRule
-    ? `<span><i style="background:rgba(31,138,76,.9)"></i>meets the rule (darker = more sunlight)</span><span><i style="background:rgba(192,57,43,.35)"></i>breaks the rule</span>`
+    ? `<span><i style="background:rgba(31,138,76,.9)"></i>meets the rule (darker = more sunlight)</span><span><i style="background:rgba(192,57,43,.35)"></i>breaks the rule</span>${S.slope !== null ? `<span>▲ ground steeper than ${S.slope}°</span>` : ""}`
     : `<span><i style="background:rgba(224,148,34,.15)"></i>little sunlight</span><span><i style="background:rgba(224,148,34,1)"></i>Sun in view all the time</span><span>Pick a mission rule to see GO / NO-GO.</span>`;
 }
 function drawRanking() {
   const card = $("compareCard");
   if (S.mode !== "plan") { card.style.display = "none"; return; }
   card.style.display = "";
-  const plan = S.index.plan, hour0 = Math.round((S.landing - parseUTC(plan.start)) / 36e5), hasRule = S.dark !== null || S.black !== null;
+  const plan = S.index.plan, hour0 = Math.round((S.landing - parseUTC(plan.start)) / 36e5), hasRule = hasAnyRule();
   const rows = Object.values(S.sites).filter(s => s.shares && s.spot !== "centre").map(s => ({ s, st: dayStats(s, hour0, S.days * 24) }));
-  rows.forEach(r => r.ok = passes(r.st));
+  rows.forEach(r => r.ok = passes(r.st) && slopeOK(r.s));
   rows.sort((a, b) => (hasRule ? b.ok - a.ok : 0) || b.st.sun - a.st.sun);
   $("rankSub").textContent = `Landing ${dayText(S.landing)} ${isoUTC(S.landing).slice(11)} UTC, ${S.days}-day mission, ${S.mast} m ${S.mast === "2" ? "deck" : "mast"}` +
     (hasRule ? `. ${rows.filter(r => r.ok).length} of ${rows.length} sites meet the rule.` : ". Sorted by sunlight; pick a mission rule to see GO / NO-GO.") + " Click a row to open the site.";
-  $("rank").innerHTML = `<tr><th>Site</th>${hasRule ? "<th>Verdict</th>" : ""}<th>Sun in view</th><th>Longest darkness</th><th>Earth in view</th><th>Longest Earth blackout</th></tr>` +
+  $("rank").innerHTML = `<tr><th>Site</th>${hasRule ? "<th>Verdict</th>" : ""}<th>Sun in view</th><th>Longest darkness</th><th>Earth in view</th><th>Longest Earth blackout</th><th>Ground slope</th></tr>` +
     rows.map(({ s, st, ok }) => `<tr class="click" data-id="${s.id}"${s.id === S.siteId ? ' style="background:var(--hover)"' : ""}><td>${s.id === S.siteId ? "<b>" + shortName(s) + "</b>" : shortName(s)}</td>
       ${hasRule ? `<td><b style="color:var(${ok ? "--go" : "--nogo"})">${ok ? "GO" : "NO-GO"}</b></td>` : ""}
-      <td class="n">${fmt(st.sun)}%</td><td class="n">${hoursText(st.dark)}</td><td class="n">${st.earth < 0.5 ? '<b style="color:var(--nogo)">never</b>' : fmt(st.earth) + "%"}</td><td class="n">${st.earth < 0.5 ? "whole mission" : hoursText(st.black)}</td></tr>`).join("");
+      <td class="n">${fmt(st.sun)}%</td><td class="n">${hoursText(st.dark)}</td><td class="n">${st.earth < 0.5 ? '<b style="color:var(--nogo)">never</b>' : fmt(st.earth) + "%"}</td><td class="n">${st.earth < 0.5 ? "whole mission" : hoursText(st.black)}</td>
+      <td class="n" style="color:${slopeColor(s.slope_deg)}">${s.slope_deg === null || s.slope_deg === undefined ? "–" : fmt(s.slope_deg, 1) + "°"}</td></tr>`).join("");
 }
 function calendarHit(ev) {
   if (!calCells) return null;
@@ -783,13 +832,14 @@ function calendarHit(ev) {
 function missionsTable() {
   const rows = Object.values(S.sites).filter(s => s.landing);
   rows.sort((a, b) => parseUTC(b.landing.time_utc) - parseUTC(a.landing.time_utc));
-  $("missions").innerHTML = `<tr><th>Mission</th><th>Landed (UTC)</th><th>Sun at touchdown</th><th>Sunset after landing</th><th>Earth at touchdown</th><th>Eclipse during the mission</th><th>Horizon used</th></tr>` +
+  $("missions").innerHTML = `<tr><th>Mission</th><th>Landed (UTC)</th><th>Sun at touchdown</th><th>Sunset after landing</th><th>Earth at touchdown</th><th>Eclipse during the mission</th><th>Ground slope</th><th>Horizon used</th></tr>` +
     rows.map(s => { const l = s.landing;
       return `<tr class="click" data-id="${s.id}"><td><b>${s.name}</b></td><td class="n">${l.time_utc.replace("T", " ")}</td>
         <td class="n">${fmt(l.sun_el, 1)}° (${fmt(l.sun_above_horizon_deg, 1)}° over local horizon)</td>
         <td class="n">${l.hours_to_sunset === null ? "after the data window" : hoursText(l.hours_to_sunset)}</td>
         <td class="n">${l.earth_el < -S.index.earth_radius ? `<b style="color:var(--nogo)">below horizon (${fmt(l.earth_el, 0)}°)</b>` : fmt(l.earth_el, 1) + "°"}</td>
         <td class="n">${(s.mission_eclipses || []).length ? s.mission_eclipses.map(e => `${dayText(parseUTC(e.start))}, up to ${fmt(e.max_cover_pct)}% of the Sun`).join("<br>") : "–"}</td>
+        <td class="n">${s.slope_deg === null || s.slope_deg === undefined ? "–" : fmt(s.slope_deg, 1) + "° (80 m map)"}</td>
         <td>${s.horizon_source.replace(", no terrain", "")}</td></tr>`; }).join("");
 }
 function checks() {
@@ -831,6 +881,7 @@ function methodsText() {
   <p><b>Sun and Earth positions:</b> NASA JPL Horizons, apparent azimuth and elevation for a point on the lunar surface, every hour for 2027–2028 (every 10 minutes around real landings). Horizons includes the Moon’s orbit and libration.</p>
   <p><b>Terrain horizon:</b> NASA LOLA polar height map (PGDA, 80 m per pixel${S.index.sites.some(s => s.maps && s.maps.length > 1) ? ", 20 m within 30 km" : ""}). From each site we cast 720 rays, one every 0.5°, out to 150 km and keep the highest terrain angle, corrected for the curve of the Moon. The Moon has no air, so there is no refraction. Sites far from the pole use a smooth Moon: there the Sun and Earth stand high and nearby hills matter little.</p>
   <p><b>Artemis III regions:</b> outlines from the USGS navigational grids (regions from LROC QuickMap). Each outline is scanned on a grid; the Sun and Earth directions of the region centre are turned to each grid point, and the best-lit point is then recomputed in full with its own Horizons data.</p>
+  <p><b>Landing safety:</b> ground slope from the NASA LOLA 80 m map (height difference between points 80 m on either side). NASA’s crew lander needs slopes under about 5° (requirement cited in Artemis III site studies, arXiv:2406.19863). An 80 m map smooths small bumps, so this is a first screening: the real slope under a lander’s feet can be steeper, and certifying a spot needs 5 m maps.</p>
   <p><b>Your own point:</b> for a point picked on the map the page computes the horizon itself, from a 240 m version of the LOLA map (the resolution of NASA’s 2011 illumination study), and turns the Sun and Earth directions of the nearest computed site to that point. It is a quick look: ridges closer than about 1 km are smoothed more than in the 80 m calculation used for the listed sites.</p>
   <p><b>Scores:</b> share of the Sun’s and Earth’s disk above the local horizon (Sun 0.53° wide, Earth 1.9° wide). Every number is also shown with the horizon 0.1° higher and lower, as a measure of how sure we are about the terrain.</p>
   <p><b>Edge of the map:</b> the height map ends at 80° S. For sites north of about 85° S a part of the 150 km search radius lies beyond that edge, and terrain there is not counted (for Peak near Cabeus B about a fifth of the rays).</p>
@@ -840,14 +891,15 @@ function methodsText() {
 }
 
 // ---------- url state ----------
-function writeHash() { const c = S.siteId === "custom" ? `|${S.sites.custom.lat.toFixed(4)},${S.sites.custom.lon.toFixed(4)}` : "";
-  history.replaceState(null, "", `#${S.siteId}|${S.mode}|${isoUTC(S.landing)}|${S.days}|${S.mast}|${S.rule}|${S.dark ?? ""}|${S.black ?? ""}${c}`); }
+function writeHash() { const c = S.siteId === "custom" ? `${S.sites.custom.lat.toFixed(4)},${S.sites.custom.lon.toFixed(4)}` : "";
+  history.replaceState(null, "", `#${S.siteId}|${S.mode}|${isoUTC(S.landing)}|${S.days}|${S.mast}|${S.rule}|${S.dark ?? ""}|${S.black ?? ""}|${c}|${S.slope ?? ""}`); }
 function readHash() {
   const p = decodeURIComponent(location.hash.slice(1)).split("|");
   const custom = p[0] === "custom" && p[8] ? p[8].split(",").map(Number) : null;
   if (p.length < 8 || !(S.sites[p[0]] || custom)) return false;
   Object.assign(S, { siteId: custom ? S.index.sites[0].id : p[0], mode: custom ? "plan" : p[1], landing: parseUTC(p[2]), days: +p[3], mast: p[4], rule: p[5], dark: p[6] === "" ? null : +p[6], black: p[7] === "" ? null : +p[7] });
   if (custom && custom.every(Number.isFinite)) S.pendingCustom = { lat: custom[0], lon: custom[1] };
+  S.slope = p[9] ? +p[9] : null;
   return true;
 }
 
@@ -855,7 +907,7 @@ function readHash() {
 function syncControls() {
   $("site").value = S.siteId; $("days").value = String(S.days); $("rule").value = S.rule;
   $("date").value = isoUTC(S.landing);
-  $("maxDark").value = S.dark ?? ""; $("maxBlack").value = S.black ?? "";
+  $("maxDark").value = S.dark ?? ""; $("maxBlack").value = S.black ?? ""; $("maxSlope").value = S.slope === null ? "" : String(S.slope);
   $("ruleText").textContent = RULES[S.rule].text;
   document.querySelectorAll("#mast button").forEach(b => b.classList.toggle("on", b.dataset.v === S.mast));
   const site = S.sites[S.siteId];
@@ -881,11 +933,15 @@ function bind() {
   $("rule").onchange = e => { S.rule = e.target.value; if (S.rule !== "custom") { S.dark = RULES[S.rule].dark; S.black = RULES[S.rule].black; } syncControls(); render(); };
   const lim = (el, key) => el.onchange = e => { S[key] = e.target.value === "" ? null : Math.max(0, +e.target.value); S.rule = "custom"; syncControls(); render(); };
   lim($("maxDark"), "dark"); lim($("maxBlack"), "black");
+  $("maxSlope").onchange = e => { S.slope = e.target.value === "" ? null : +e.target.value; render(); };
+  document.querySelectorAll("#regionMode button").forEach(b => b.onclick = () => {
+    S.regionMode = b.dataset.v; document.querySelectorAll("#regionMode button").forEach(x => x.classList.toggle("on", x === b)); drawRegion(S.sites[S.siteId]); });
   document.querySelectorAll("#mast button").forEach(b => b.onclick = () => { S.mast = b.dataset.v; syncControls(); render(); });
   const cal = $("calendar"), tip = $("tip");
   cal.onmousemove = ev => { const hit = calendarHit(ev); if (!hit) { tip.style.display = "none"; return; }
     const st = dayStats(hit.site, hit.day * 24, S.days * 24);
-    tip.innerHTML = `<b>${hit.site.name}</b> · land ${dayText(hit.ms)}<br>Sun in view ${fmt(st.sun)}% · longest darkness ${hoursText(st.dark)}<br>longest Earth blackout ${hoursText(st.black)}`;
+    tip.innerHTML = `<b>${hit.site.name}</b> · land ${dayText(hit.ms)}<br>Sun in view ${fmt(st.sun)}% · longest darkness ${hoursText(st.dark)}<br>longest Earth blackout ${hoursText(st.black)}` +
+      (hit.site.slope_deg === null || hit.site.slope_deg === undefined ? "" : `<br>ground slope ${fmt(hit.site.slope_deg, 1)}°`);
     tip.style.display = "block"; tip.style.left = Math.min(ev.clientX + 14, innerWidth - 290) + "px"; tip.style.top = ev.clientY + 14 + "px"; };
   cal.onmouseleave = () => tip.style.display = "none";
   cal.onclick = ev => { const hit = calendarHit(ev); if (!hit) return; S.siteId = hit.site.id; S.mode = "plan"; S.landing = hit.ms; syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); };
@@ -895,7 +951,8 @@ function bind() {
     let hit = null, bestD = v.cell * v.cell;
     v.reg.points.forEach(p => { const d = (v.X(p[0]) - mx) ** 2 + (v.Y(p[1]) - my) ** 2; if (d < bestD) { bestD = d; hit = p; } });
     if (!hit) { tip.style.display = "none"; return; }
-    tip.innerHTML = `${fmt(Math.abs(hit[2]), 3)}° ${hit[2] < 0 ? "S" : "N"}, ${fmt(Math.abs(hit[3]), 3)}° ${hit[3] < 0 ? "W" : "E"} · ground ${hit[4]} m<br>Sun in view ${fmt(hit[v.sunI], 1)}% · longest darkness ${hoursText(hit[v.darkI])}<br>Earth in view ${fmt(hit[v.earthI], 1)}% of the time`;
+    tip.innerHTML = `${fmt(Math.abs(hit[2]), 3)}° ${hit[2] < 0 ? "S" : "N"}, ${fmt(Math.abs(hit[3]), 3)}° ${hit[3] < 0 ? "W" : "E"} · ground ${hit[4]} m<br>Sun in view ${fmt(hit[v.sunI], 1)}% · longest darkness ${hoursText(hit[v.darkI])}<br>Earth in view ${fmt(hit[v.earthI], 1)}% of the time` +
+      (v.slI !== undefined && hit[v.slI] !== null ? `<br>ground slope ${fmt(hit[v.slI], 1)}°` : "");
     tip.style.display = "block"; tip.style.left = Math.min(ev.clientX + 14, innerWidth - 290) + "px"; tip.style.top = ev.clientY + 14 + "px"; };
   map.onmouseleave = () => tip.style.display = "none";
   $("regionText").onclick = ev => { const b = ev.target.closest("button[data-open]"); if (b && S.sites[b.dataset.open]) { S.siteId = b.dataset.open; S.mode = "plan"; syncControls(); render(); } };
